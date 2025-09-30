@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CAT 1 Docket</title>
+    <link rel="stylesheet" href="dashboard.css">
+
+
+
+    <!-- Page styles for the docket -->
+    <style>
+        .docket {
+            background: white;              /* white card look */
+            padding: 20px;                 /* spacing inside */
+            border-radius: 8px;            /* rounded corners */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* light shadow */
+            width: 60%;
+            height: 90vh;
+            margin: auto;                  /* center on page */
+            flex-direction: column;    /* stacks children vertically */
+            justify-content: center; /* spreads content */    
+            box-sizing: border-box;          /* include padding in width/height */
+            overflow: hidden;  
+
+        }
+
+        table {
+            width: 100%;                   /* table fills container */
+            border-collapse: collapse;     /* remove double borders */
+            margin-top: 15px;              /* space above */
+        }
+        table, th, td {
+            border: 1px solid black;       /* border around table */
+        }
+        th, td {
+            padding: 8px;                  /* space inside cells */
+            text-align: left;              /* align text */
+        }
+
+        .note {
+            font-size: 14px;               /* smaller text for notes */
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+<div class="sidebar">
+  <h2>Menu</h2>
+  <ul>
+        <a href="dashboard.html">Home</a>  
+        <a href="dockets.html" class="active">Dockets</a>    
+        <a href="payments.html">Payments</a>  
+        <a href="Results.html">Results</a> 
+  </ul>
+</div>
+
+    <!-- Top Header -->
+    <div class="header">
+        <img src="Docket-system-frontend\frontend\cavendish-logo.png" alt="Cavendish Logo" class="logo">
+        <h1>CAT 1 Docket</h1>
+        <a href="dockets.html"><button class="logout">Back</button></a>
+    </div>
+
+    <!-- Docket Content -->
+    <div class="docket">
+        <!-- Title and Student Info -->
+        <h2>Cavendish University Zambia Ltd.</h2>
+        <h3>Bachelor of Science in Computing - CAT 1 DOCKET</h3>
+        <p><b>Date Issued:</b> 9/2/2025</p>
+        <p><b>Student Name:</b> Denise Umuhoza Seti</p>
+        <p><b>Student Number:</b> 104744</p>
+
+        <!-- Table of Courses -->
+        <table>
+            <tr>
+                <th>Code</th>
+                <th>Module</th>
+                <th>Date Time</th>
+                <th>Venue</th>
+                <th>Invigilator's Signature</th>
+            </tr>
+            <tr>
+                <td>COM411</td>
+                <td>Network Security & Cryptology</td>
+                <td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>COM413</td>
+                <td>Software Engineering (Group Project)</td>
+                <td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>COM415</td>
+                <td>System Project Management</td>
+                <td></td><td></td><td></td>
+            </tr>
+            <tr>
+                <td>IT324</td>
+                <td>Artificial Intelligence</td>
+                <td></td><td></td><td></td>
+            </tr>
+        </table>
+
+        <!-- Notes Section -->
+        <div class="note"><p><b>Note:</b></p>
+            <p>1.All Students are expected to sign the CAT 1 Attendance Register as evidence that one
+                 has sat for the CAT 1.
+            <p>2.The CAT 1 docket is not the Exam Attendance Register.</p>  
+            <p>3.Students must only sign this document on the last day of their CAT 1 and leave the
+                 form with the invigilator.</p>  
+            <p>4.This document is a proof that the student has registered for the CAT 1.</p>  
+            <p>5.All students must possess a CUZ ID card and Authorization from Finance.</p>
+        </div>
+
+        <!-- Later: QR Code will be placed here -->
+        <div id="qrcode"></div>
+    </div>
+</body>
+</html>

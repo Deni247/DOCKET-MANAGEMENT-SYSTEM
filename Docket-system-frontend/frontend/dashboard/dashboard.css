@@ -58,6 +58,13 @@ body {
     padding: 30px;
 }
 
+.sidebar a.active {
+  background-color: #1d3557; /* darker shade for highlight */
+  color: #fff; /* white text */
+  font-weight: bold;
+}
+
+
 .card {
     background: white;
     padding: 15px;
