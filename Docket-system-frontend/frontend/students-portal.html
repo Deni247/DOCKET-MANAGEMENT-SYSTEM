@@ -4,24 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
-    <title>Student portal</title>
-    
+    <title>Student Portal</title>
 </head>
 <body>
     <header>
-        <h1>Cavendish student portal</h1>
+        <h1>Cavendish Student Portal</h1>
     </header>
+
     <!-- Cavendish Logo -->
     <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo" width="150">
 
     <!-- Input fields -->
-    <input type="text" placeholder="Enter Student Number">
-    <input type="password" placeholder="Enter Password">
+    <input id="student_number" type="text" placeholder="Enter Student Number">
+    <input id="password" type="password" placeholder="Enter Password">
 
     <!-- Forgot password -->
     <a href="#" class="forgot">Forgot password?</a>
 
     <!-- Login button -->
-    <button>Login</button>
+    <button id="loginBtn">Login</button>
+
+    <!-- Output -->
+    <pre id="out"></pre>
+
+<script>
+document.getElementById("loginBtn").onclick = async () => {
+    const student_number = document.getElementById("student_number").value;
+    const password = document.getElementById("password").value;
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                student_number: student_number,
+                password: password,
+                role: "student",
+                use_cookie: true
+            }),
+            credentials: "include"
+        });
+
+        const json = await res.json();
+        document.getElementById("out").textContent = JSON.stringify(json, null, 2);
+
+        if (json.ok) {
+            // Store the token (optional)
+            if (json.token) localStorage.setItem("token", json.token);
+
+            // ✅ Store student data
+            localStorage.setItem("student_first_name", json.user.first_name);
+            localStorage.setItem("student_last_name", json.user.last_name);
+            localStorage.setItem("student_id", json.user.id);
+
+            // Redirect to dashboard
+            window.location.href = "dashboard.html";
+        } else {
+            alert("Login failed: " + (json.error || "Invalid credentials"));
+        }
+    } catch (err) {
+        document.getElementById("out").textContent = "Error: " + err;
+    }
+};
+</script>
 </body>
 </html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="dashboard.css">
+</head>
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <img src="cavendish-logo.png" alt="Cavendish Logo" class="logo">
+        <h1>Student Dashboard</h1>
+        <button class="logout" id="logoutBtn">Logout</button>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="dashboard.html" class="active">Home</a>
+        <a href="dockets.html">Dockets</a>
+        <a href="payments.html">Payments</a>
+        <a href="results.html">Results</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+        <h2 id="welcomeMsg">CUZ Online welcomes ...</h2>
+        <p id="programmeInfo">Fetching your programme...</p>
+
+        <div class="card">
+            <h3>Docket Info</h3>
+            <p>Status: Paid</p>
+            <p>QR Code</p>
+        </div>
+    </div>
+
+<script>
+async function loadDashboard() {
+    const first = localStorage.getItem("student_first_name");
+    const last = localStorage.getItem("student_last_name");
+
+    if (first && last) {
+        document.getElementById("welcomeMsg").textContent = `CUZ Online welcomes ${first} ${last}`;
+    }
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/me", {
+            method: "GET",
+            credentials: "include",
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+        });
+
+        const json = await res.json();
+        if (json.ok && json.user) {
+            if (json.user.programme) {
+                document.getElementById("programmeInfo").textContent = 
+                    `Programme: ${json.user.programme}`;
+            } else {
+                document.getElementById("programmeInfo").textContent = "Programme not found.";
+            }
+        } else {
+            document.getElementById("programmeInfo").textContent = "Could not fetch your info.";
+        }
+    } catch (err) {
+        document.getElementById("programmeInfo").textContent = "Error fetching data.";
+    }
+}
+
+document.getElementById("logoutBtn").onclick = async () => {
+    await fetch("http://127.0.0.1:5000/logout", {
+        method: "POST",
+        credentials: "include"
+    });
+    localStorage.clear();
+    window.location.href = "students-portal.html";
+};
+
+loadDashboard();
+</script>
+</body>
+</html>
