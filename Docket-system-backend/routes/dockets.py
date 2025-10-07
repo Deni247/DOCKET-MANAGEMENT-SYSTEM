@@ -2,12 +2,13 @@ from flask import Blueprint, jsonify, request, send_file
 import os
 from datetime import datetime
 from io import BytesIO
-
 import qrcode
 import mysql.connector
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from dotenv import load_dotenv
+import hashlib
+import secrets
 
 # Load environment variables
 load_dotenv()
@@ -25,7 +26,7 @@ def get_db_connection():
     )
 
 # ---------------- Helper: Generate PDF Docket ----------------
-def generate_docket_pdf(student, courses, exam_type):
+def generate_docket_pdf(student, courses, exam_type, qr_data):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -74,7 +75,6 @@ def generate_docket_pdf(student, courses, exam_type):
     p.drawString(350, y, "Student Signature: ________________________")
 
     # ---------------- QR Code ----------------
-    qr_data = f"{student['student_number']}_{exam_type}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
     qr_img = qrcode.make(qr_data)
     qr_path = f"temp_qr_{student['student_number']}.png"
     qr_img.save(qr_path)
@@ -91,7 +91,6 @@ def generate_docket_pdf(student, courses, exam_type):
 def check_eligibility(student_id):
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
-
     cur.execute(
         "SELECT ca1_status, ca2_status, exam_status FROM clearances WHERE student_id=%s LIMIT 1",
         (student_id,),
@@ -103,13 +102,11 @@ def check_eligibility(student_id):
     if not row:
         return jsonify({"ok": False, "error": "No clearance records found."}), 404
 
-    # Convert to frontend-compatible format
     eligibility_list = [
         {"exam_type": "ca1", "eligible": row["ca1_status"] == "eligible"},
         {"exam_type": "ca2", "eligible": row["ca2_status"] == "eligible"},
         {"exam_type": "exam", "eligible": row["exam_status"] == "eligible"},
     ]
-
     return jsonify({"ok": True, "eligibility": eligibility_list})
 
 # ---------------- Route: Generate Docket ----------------
@@ -131,7 +128,6 @@ def generate_docket():
         (student_id,),
     )
     clearance = cur.fetchone()
-
     if not clearance:
         cur.close()
         conn.close()
@@ -142,7 +138,6 @@ def generate_docket():
         "ca2": clearance["ca2_status"],
         "exam": clearance["exam_status"]
     }
-
     if status_map.get(exam_type) != "eligible":
         cur.close()
         conn.close()
@@ -151,16 +146,15 @@ def generate_docket():
             "error": f"Not eligible for {exam_type.upper()} docket. Please visit the Retentions Office."
         }), 403
 
-    # Fetch student info
+    # ---------------- Fetch student info ----------------
     cur.execute("""
-        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name
+        SELECT s.id, s.first_name, s.last_name, s.student_number, s.programme_id, p.programme_name
         FROM students s
         JOIN programmes p ON s.programme_id = p.programme_id
         WHERE s.id = %s
     """, (student_id,))
     student = cur.fetchone()
 
-    # ✅ FIXED: Proper indentation for course fetching block
     cur.execute("""
         SELECT c.course_name
         FROM enrollments e
@@ -171,19 +165,78 @@ def generate_docket():
     """, (student_id,))
     courses = cur.fetchall()
 
+    if not student:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Student not found."}), 404
+    if not courses:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "No enrolled courses found."}), 404
+
+    # ---------------- Generate QR data and token ----------------
+    token_value = secrets.token_urlsafe(16)
+    token_hash = hashlib.sha256(token_value.encode()).hexdigest()  # ✅ hash for secure storage
+    qr_data = f"{student['student_number']}_{exam_type}_{token_value}"
+
+    try:
+        # ---------------- Ensure token key exists for verification ----------------
+        cur.execute("SELECT key_id, secret_key FROM token_keys WHERE status='active' LIMIT 1")
+        key_row = cur.fetchone()
+        if not key_row:
+            # No active key exists, create one
+            new_secret_key = secrets.token_urlsafe(32)
+            cur.execute("""
+                INSERT INTO token_keys (key_name, secret_key, created_at, status)
+                VALUES (%s, %s, NOW(), %s)
+            """, ("default_verification_key", new_secret_key, "active"))
+            token_key_id = cur.lastrowid
+            secret_key_for_docket = new_secret_key
+        else:
+            token_key_id = key_row["key_id"]
+            secret_key_for_docket = key_row["secret_key"]
+
+        # ---------------- Save to dockets table ----------------
+        cur.execute("""
+            INSERT INTO dockets (student_id, programme_id, exam_type, qr_code, issued_at, status, printed_count, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+        """, (
+            student['id'],
+            student['programme_id'],
+            exam_type,
+            qr_data,
+            datetime.now(),
+            "issued",
+            1
+        ))
+        docket_id = cur.lastrowid
+
+        # ---------------- Save to docket_tokens table ----------------
+        cur.execute("""
+            INSERT INTO docket_tokens (docket_id, token_hash, issued_at, status)
+            VALUES (%s, %s, %s, %s)
+        """, (
+            docket_id,
+            token_hash,
+            datetime.now(),
+            "active"
+        ))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": f"Failed to save docket/token: {e}"}), 500
+
     cur.close()
     conn.close()
 
-    if not student:
-        return jsonify({"ok": False, "error": "Student not found."}), 404
-    if not courses:
-        return jsonify({"ok": False, "error": "No enrolled courses found."}), 404
-
-    pdf_buffer = generate_docket_pdf(student, courses, exam_type)
+    # ---------------- Generate PDF ----------------
+    pdf_buffer = generate_docket_pdf(student, courses, exam_type, qr_data)
     return send_file(
         pdf_buffer,
         as_attachment=True,
         download_name=f"{student['student_number']}_{exam_type}_Docket.pdf",
         mimetype="application/pdf"
     )
-
