@@ -46,7 +46,7 @@ def hash_students():
 def hash_admins():
     conn = get_conn()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT admin_id, password, password_hash FROM admins WHERE password IS NOT NULL AND password_hash IS NULL")
+    cur.execute("SELECT admin_id, password, password_hash FROM admins WHERE password IS NOT NULL AND (password_hash IS NULL OR password_hash = '')")
     rows = cur.fetchall()
     print(f"Found {len(rows)} admins to hash")
     for r in rows:
