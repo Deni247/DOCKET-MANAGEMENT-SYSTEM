@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Admin Portal</title>
+</head>
+<body>
+    <header>
+        <h1>Cavendish Admin Portal</h1>
+    </header>
+
+    <!-- Cavendish Logo -->
+    <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo" width="150">
+
+    <div class="admin-login-form">
+        <h2>Admin Login</h2>
+        <input id="admin_username" type="text" placeholder="Enter Admin Username">
+        <input id="admin_password" type="password" placeholder="Enter Admin Password">
+        <button id="adminLoginBtn">Login as Admin</button>
+    </div>
+
+    <!-- Output -->
+    <pre id="out"></pre>
+
+<script>
+document.getElementById("adminLoginBtn").onclick = async () => {
+    const username = document.getElementById("admin_username").value;
+    const password = document.getElementById("admin_password").value;
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                student_number: username,
+                password: password,
+                role: "admin",
+                use_cookie: true
+            }),
+            credentials: "include"
+        });
+
+        const json = await res.json();
+        document.getElementById("out").textContent = JSON.stringify(json, null, 2);
+
+        if (json.ok) {
+            // Store the token (optional)
+            if (json.token) localStorage.setItem("token", json.token);
+
+            // Redirect to admin dashboard
+            window.location.href = "admin-dashboard.html";
+        } else {
+            alert("Admin login failed: " + (json.error || "Invalid credentials"));
+        }
+    } catch (err) {
+        document.getElementById("out").textContent = "Error: " + err;
+    }
+};
+</script>
+</body>
+</html>

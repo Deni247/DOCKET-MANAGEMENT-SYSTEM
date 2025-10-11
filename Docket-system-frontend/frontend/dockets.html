@@ -31,23 +31,30 @@ async function loadDockets() {
     return;
   }
 
-  const res = await fetch(`http://127.0.0.1:5000/dockets/eligibility/${student_id}`);
-  const json = await res.json();
+  try {
+    const res = await fetch(`http://127.0.0.1:5000/dockets/eligibility/${student_id}`);
+    console.log('Response:', res);
+    const json = await res.json();
+    console.log('JSON:', json);
 
-  if (!json.ok) {
-    document.getElementById("docketSection").innerText = json.error || "Error fetching eligibility.";
-    return;
+    if (!json.ok) {
+      document.getElementById("docketSection").innerText = json.error || "Error fetching eligibility.";
+      return;
+    }
+
+    let html = "<table border='1' cellpadding='10'><tr><th>Exam Type</th><th>Status</th><th>Action</th></tr>";
+    json.eligibility.forEach(e => {
+      const btn = e.eligible
+        ? `<button onclick="printDocket('${e.exam_type}')">Print</button>`
+        : `<span style='color:red'>Please visit Retentions Office</span>`;
+      html += `<tr><td>${e.exam_type}</td><td>${e.eligible ? "Eligible" : "Not Eligible"}</td><td>${btn}</td></tr>`;
+    });
+    html += "</table>";
+    document.getElementById("docketSection").innerHTML = html;
+  } catch (error) {
+    console.error('Error fetching dockets:', error);
+    document.getElementById("docketSection").innerText = "An error occurred while fetching dockets. Please check the console for details.";
   }
-
-  let html = "<table border='1' cellpadding='10'><tr><th>Exam Type</th><th>Status</th><th>Action</th></tr>";
-  json.eligibility.forEach(e => {
-    const btn = e.eligible
-      ? `<button onclick="printDocket('${e.exam_type}')">Print</button>`
-      : `<span style='color:red'>Please visit Retentions Office</span>`;
-    html += `<tr><td>${e.exam_type}</td><td>${e.eligible ? "Eligible" : "Not Eligible"}</td><td>${btn}</td></tr>`;
-  });
-  html += "</table>";
-  document.getElementById("docketSection").innerHTML = html;
 }
 
 async function printDocket(exam_type) {

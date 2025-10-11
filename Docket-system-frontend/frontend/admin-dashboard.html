@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="dashboard.css">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo">
+            <h1>Admin Dashboard</h1>
+        </div>
+        <button id="logoutBtn">Logout</button>
+    </header>
+
+    <main>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search by name or student number...">
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div id="results-container">
+            <!-- Search results will be displayed here -->
+        </div>
+    </main>
+
+<script>
+const token = localStorage.getItem("token");
+
+document.getElementById("searchBtn").onclick = async () => {
+    const query = document.getElementById("search-input").value;
+    if (!query) {
+        return;
+    }
+
+    const resultsContainer = document.getElementById("results-container");
+    resultsContainer.innerHTML = "<p>Loading...</p>";
+
+    try {
+        const res = await fetch(`http://127.0.0.1:5000/dockets/students/search?q=${query}`, {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        const json = await res.json();
+
+        if (json.ok) {
+            const students = json.students;
+            resultsContainer.innerHTML = "";
+            if (students.length === 0) {
+                resultsContainer.innerHTML = "<p>No students found.</p>";
+            } else {
+                students.forEach(student => {
+                    const studentCard = document.createElement("div");
+                    studentCard.className = "student-card";
+                    studentCard.innerHTML = `
+                        <div class="student-info">
+                            <h3>${student.first_name} ${student.last_name}</h3>
+                            <p><strong>Student Number:</strong> ${student.student_number}</p>
+                            <p><strong>Programme:</strong> ${student.programme_name}</p>
+                        </div>
+                        <div class="balance-info">
+                            <p><strong>Total Fee:</strong> ${student.total_fee}</p>
+                            <p><strong>Amount Paid:</strong> ${student.amount_paid}</p>
+                            <p><strong>Balance:</strong> ${student.balance}</p>
+                        </div>
+                        <div class="payment-form">
+                            <h4>Update Payment</h4>
+                            <input type="number" id="amount-${student.student_number}" placeholder="Amount">
+                            <button onclick="updatePayment('${student.student_number}')">Update Payment</button>
+                        </div>
+                    `;
+                    resultsContainer.appendChild(studentCard);
+                });
+            }
+        } else {
+            resultsContainer.innerHTML = `<p>Error: ${json.error || "Unknown error"}</p>`;
+        }
+    } catch (err) {
+        console.error("Error searching students:", err);
+        resultsContainer.innerHTML = "<p>An error occurred while searching.</p>";
+    }
+};
+
+async function updatePayment(student_number) {
+    const amount = document.getElementById(`amount-${student_number}`).value;
+    if (!amount) {
+        alert("Please enter an amount.");
+        return;
+    }
+
+    try {
+        const res = await fetch("http://127.0.0.1:5000/dockets/payments/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                student_number: student_number,
+                amount: amount
+            })
+        });
+
+        const json = await res.json();
+
+        if (json.ok) {
+            alert("Payment updated successfully!");
+            document.getElementById("searchBtn").click(); // Refresh search results
+        } else {
+            alert("Failed to update payment: " + (json.error || "Unknown error"));
+        }
+    } catch (err) {
+        console.error("Error updating payment:", err);
+        alert("An error occurred while updating the payment.");
+    }
+}
+
+document.getElementById("logoutBtn").onclick = async () => {
+    try {
+        const res = await fetch("http://127.0.0.1:5000/logout", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            credentials: "include"
+        });
+
+        const json = await res.json();
+
+        if (json.ok) {
+            localStorage.removeItem("token");
+            window.location.href = "admin-login.html";
+        } else {
+            alert("Logout failed: " + (json.error || "Unknown error"));
+        }
+    } catch (err) {
+        console.error("Error during logout:", err);
+        alert("An error occurred during logout.");
+    }
+};
+</script>
+</body>
+</html>

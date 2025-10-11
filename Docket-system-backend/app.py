@@ -112,7 +112,7 @@ def login():
 
     now = datetime.datetime.utcnow()
     payload = {
-        "sub": user["id"],
+        "sub": str(user["id"]),
         "role": role,
         "iat": now,
         "exp": now + datetime.timedelta(seconds=JWT_EXP_SECONDS)

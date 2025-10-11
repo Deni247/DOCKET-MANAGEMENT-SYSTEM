@@ -1,0 +1,18 @@
+2025-10-11 10:24:25,913 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-10-11 10:24:25,914 - [33mPress CTRL+C to quit[0m
+2025-10-11 10:24:25,918 -  * Restarting with stat
+2025-10-11 10:24:27,059 -  * Debugger is active!
+2025-10-11 10:24:27,064 -  * Debugger PIN: 895-755-210
+2025-10-11 10:24:53,904 - 127.0.0.1 - - [11/Oct/2025 10:24:53] "OPTIONS /login HTTP/1.1" 200 -
+2025-10-11 10:24:55,264 - 127.0.0.1 - - [11/Oct/2025 10:24:55] "POST /login HTTP/1.1" 200 -
+2025-10-11 10:25:03,835 - 127.0.0.1 - - [11/Oct/2025 10:25:03] "OPTIONS /dockets/students/search?q=104775 HTTP/1.1" 200 -
+2025-10-11 10:25:03,867 - 127.0.0.1 - - [11/Oct/2025 10:25:03] "GET /dockets/students/search?q=104775 HTTP/1.1" 200 -
+2025-10-11 10:25:15,136 - 127.0.0.1 - - [11/Oct/2025 10:25:15] "OPTIONS /dockets/payments/update HTTP/1.1" 200 -
+2025-10-11 10:25:15,153 - update_payment function called.
+2025-10-11 10:25:15,188 - 127.0.0.1 - - [11/Oct/2025 10:25:15] "POST /dockets/payments/update HTTP/1.1" 200 -
+2025-10-11 10:25:17,190 - 127.0.0.1 - - [11/Oct/2025 10:25:17] "OPTIONS /dockets/students/search?q=104775 HTTP/1.1" 200 -
+2025-10-11 10:25:17,217 - 127.0.0.1 - - [11/Oct/2025 10:25:17] "GET /dockets/students/search?q=104775 HTTP/1.1" 200 -
+2025-10-11 10:31:52,076 -  * Detected change in 'c:\\Users\\MakeniCentralSouth\\OneDrive\\Desktop\\DOCKET-MANAGMENT-SYSTEM\\Docket-system-backend\\routes\\dockets.py', reloading
+2025-10-11 10:31:52,193 -  * Restarting with stat
+2025-10-11 10:33:22,539 -  * Restarting with stat

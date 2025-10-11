@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 09, 2025 at 11:34 AM
+-- Generation Time: Oct 11, 2025 at 10:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -42,7 +42,9 @@ CREATE TABLE `admins` (
 -- Dumping data for table `admins`
 --
 
-ALTER TABLE `admins` DROP COLUMN `password`;
+INSERT INTO `admins` (`admin_id`, `username`, `password_hash`, `role`, `status`, `created_at`, `updated_at`, `password`) VALUES
+(1, 'REWARDSON', '$2b$12$ERdPCHmVWjVyxBC6wUyvR.dKjuu3hxa13AGqxQTg96m1blfVOglC6', 'super_admin', 'active', '2025-10-09 09:18:59', '2025-10-09 12:31:06', NULL),
+(2, 'DENISE', '$2b$12$XQ4OBXK8fD77H.m5S2nJyuTXcCC3iGky0.qrul14eOs0Yfyfe9vu.', 'super_admin', 'active', '2025-10-09 09:18:59', '2025-10-09 12:31:07', NULL);
 
 -- --------------------------------------------------------
 
@@ -83,22 +85,22 @@ CREATE TABLE `clearances` (
 --
 
 INSERT INTO `clearances` (`clearance_id`, `student_id`, `programme_id`, `year_of_study`, `semester`, `ca1_status`, `ca2_status`, `exam_status`, `last_checked`) VALUES
-(1, 1, 1, 1, 1, 'eligible', 'blocked', 'blocked', '2025-09-26 11:05:38'),
-(2, 1, 1, 1, 1, 'eligible', 'blocked', 'blocked', '2025-09-26 11:05:38'),
-(3, 1, 1, 1, 1, 'eligible', 'blocked', 'blocked', '2025-09-26 11:05:38'),
-(4, 1, 1, 1, 1, 'eligible', 'blocked', 'blocked', '2025-09-26 11:05:38'),
+(1, 1, 1, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:50:22'),
+(2, 1, 1, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:50:22'),
+(3, 1, 1, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:50:22'),
+(4, 1, 1, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:50:22'),
 (5, 2, 2, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
 (6, 2, 2, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
 (7, 2, 2, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
 (8, 2, 2, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(9, 3, 3, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(10, 3, 3, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(11, 3, 3, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(12, 3, 3, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(13, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(14, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(15, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
-(16, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
+(9, 3, 3, 1, 1, 'eligible', 'eligible', 'eligible', '2025-10-11 07:36:11'),
+(10, 3, 3, 1, 1, 'eligible', 'eligible', 'eligible', '2025-10-11 07:36:11'),
+(11, 3, 3, 1, 1, 'eligible', 'eligible', 'eligible', '2025-10-11 07:36:11'),
+(12, 3, 3, 1, 1, 'eligible', 'eligible', 'eligible', '2025-10-11 07:36:11'),
+(13, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:49:41'),
+(14, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:49:41'),
+(15, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:49:41'),
+(16, 4, 4, 1, 1, 'blocked', 'blocked', 'blocked', '2025-10-11 08:49:41'),
 (17, 5, 5, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
 (18, 5, 5, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
 (19, 5, 5, 1, 1, 'blocked', 'blocked', 'blocked', '2025-09-26 10:53:35'),
@@ -1226,7 +1228,9 @@ CREATE TABLE `dockets` (
 --
 
 INSERT INTO `dockets` (`docket_id`, `student_id`, `programme_id`, `exam_type`, `course_id`, `year_of_study`, `semester`, `qr_code`, `issued_at`, `expires_at`, `status`, `printed_count`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 'ca1', NULL, 0, 0, '104775_ca1_zLQRYl3ipOM7DwCCfO6H2g', '2025-10-09 09:33:32', NULL, '', 1, '2025-10-09 09:33:32', '2025-10-09 09:33:32');
+(1, 1, 1, 'ca1', NULL, 0, 0, '104775_ca1_zLQRYl3ipOM7DwCCfO6H2g', '2025-10-09 09:33:32', NULL, '', 1, '2025-10-09 09:33:32', '2025-10-09 09:33:32'),
+(2, 1, 1, 'ca1', NULL, 0, 0, '104775_ca1_mvM06cJUljPJWJWrl3CMbg', '2025-10-09 13:04:22', NULL, '', 1, '2025-10-09 13:04:22', '2025-10-09 13:04:22'),
+(3, 1, 1, 'ca1', NULL, 0, 0, '104775_ca1_Qi8Duo7QRoxmct5N-jXsCA', '2025-10-09 13:26:07', NULL, '', 1, '2025-10-09 13:26:07', '2025-10-09 13:26:07');
 
 -- --------------------------------------------------------
 
@@ -1248,7 +1252,9 @@ CREATE TABLE `docket_tokens` (
 --
 
 INSERT INTO `docket_tokens` (`token_id`, `docket_id`, `token_hash`, `issued_at`, `expires_at`, `status`) VALUES
-(1, 1, 'fd25671bceec6fb291ab766c0f60356b32cb53da2ef36c17eee4bb65a7097d9a', '2025-10-09 09:33:32', NULL, 'active');
+(1, 1, 'fd25671bceec6fb291ab766c0f60356b32cb53da2ef36c17eee4bb65a7097d9a', '2025-10-09 09:33:32', NULL, 'active'),
+(2, 2, 'd08a86c61771e0157d51fced13e71dceb2e91bb8213001a8d9d4376f43bc1f52', '2025-10-09 13:04:22', NULL, 'active'),
+(3, 3, 'd6158a8fe246a985cd5337ccc941d6c576134eae0a6722ae7a936a697a17b95e', '2025-10-09 13:26:07', NULL, 'active');
 
 -- --------------------------------------------------------
 
@@ -1715,6 +1721,23 @@ CREATE TABLE `payments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+-- Dumping data for table `payments`
+--
+
+INSERT INTO `payments` (`payment_id`, `student_id`, `programme_id`, `course_id`, `amount`, `payment_type`, `payment_date`, `payment_status`, `receipt_number`, `created_at`) VALUES
+(1, 1, 1, NULL, 8000.00, 'General', '2025-10-11 07:18:11', 'completed', NULL, '2025-10-11 07:18:11'),
+(2, 3, 3, NULL, 11000.00, 'General', '2025-10-11 07:36:11', 'completed', NULL, '2025-10-11 07:36:11'),
+(3, 1, 1, NULL, 10000.00, 'General', '2025-10-11 07:42:19', 'completed', NULL, '2025-10-11 07:42:19'),
+(4, 1, 1, NULL, 8000.00, 'General', '2025-10-11 08:03:18', 'completed', NULL, '2025-10-11 08:03:18'),
+(5, 1, 1, NULL, 1000.00, 'General', '2025-10-11 08:12:14', 'completed', NULL, '2025-10-11 08:12:14'),
+(6, 1, 1, NULL, 1000.00, 'General', '2025-10-11 08:25:15', 'completed', NULL, '2025-10-11 08:25:15'),
+(7, 1, 1, NULL, 1000.00, 'General', '2025-10-11 08:34:30', 'completed', NULL, '2025-10-11 08:34:30'),
+(8, 1, 1, NULL, 1000.00, 'General', '2025-10-11 08:36:55', 'completed', NULL, '2025-10-11 08:36:55'),
+(9, 1, 1, NULL, 500.00, 'General', '2025-10-11 08:40:18', 'completed', NULL, '2025-10-11 08:40:18'),
+(10, 1, 1, NULL, 500.00, 'General', '2025-10-11 08:45:03', 'completed', NULL, '2025-10-11 08:45:03'),
+(11, 4, 4, NULL, 1000.00, 'General', '2025-10-11 08:49:41', 'completed', NULL, '2025-10-11 08:49:41');
+
+--
 -- Triggers `payments`
 --
 DELIMITER $$
@@ -1915,22 +1938,19 @@ CREATE TABLE `student_balances` (
 --
 
 INSERT INTO `student_balances` (`balance_id`, `student_id`, `programme_id`, `year_of_study`, `semester`, `total_fee`, `amount_paid`, `last_updated`) VALUES
-(1, 1, 1, 1, 1, 10000.00, 2000.00, '2025-09-26 11:05:38'),
-(2, 1, 1, 1, 1, 10000.00, 0.00, '2025-09-26 10:36:44'),
-(3, 1, 1, 1, 1, 10000.00, 0.00, '2025-09-26 10:36:44'),
-(4, 1, 1, 1, 1, 10000.00, 0.00, '2025-09-26 10:36:44'),
+(4, 1, 1, 1, 1, 10000.00, 0.00, '2025-10-11 08:50:22'),
 (5, 2, 2, 1, 1, 12000.00, 0.00, '2025-09-26 10:36:44'),
 (6, 2, 2, 1, 1, 12000.00, 0.00, '2025-09-26 10:36:44'),
 (7, 2, 2, 1, 1, 12000.00, 0.00, '2025-09-26 10:36:44'),
 (8, 2, 2, 1, 1, 12000.00, 0.00, '2025-09-26 10:36:44'),
-(9, 3, 3, 1, 1, 11000.00, 0.00, '2025-09-26 10:36:44'),
-(10, 3, 3, 1, 1, 11000.00, 0.00, '2025-09-26 10:36:44'),
-(11, 3, 3, 1, 1, 11000.00, 0.00, '2025-09-26 10:36:44'),
-(12, 3, 3, 1, 1, 11000.00, 0.00, '2025-09-26 10:36:44'),
-(13, 4, 4, 1, 1, 9000.00, 0.00, '2025-09-26 10:36:44'),
-(14, 4, 4, 1, 1, 9000.00, 0.00, '2025-09-26 10:36:44'),
-(15, 4, 4, 1, 1, 9000.00, 0.00, '2025-09-26 10:36:44'),
-(16, 4, 4, 1, 1, 9000.00, 0.00, '2025-09-26 10:36:44'),
+(9, 3, 3, 1, 1, 11000.00, 22000.00, '2025-10-11 07:36:11'),
+(10, 3, 3, 1, 1, 11000.00, 22000.00, '2025-10-11 07:36:11'),
+(11, 3, 3, 1, 1, 11000.00, 22000.00, '2025-10-11 07:36:11'),
+(12, 3, 3, 1, 1, 11000.00, 22000.00, '2025-10-11 07:36:11'),
+(13, 4, 4, 1, 1, 9000.00, 1000.00, '2025-10-11 08:49:41'),
+(14, 4, 4, 1, 1, 9000.00, 1000.00, '2025-10-11 08:49:41'),
+(15, 4, 4, 1, 1, 9000.00, 1000.00, '2025-10-11 08:49:41'),
+(16, 4, 4, 1, 1, 9000.00, 1000.00, '2025-10-11 08:49:41'),
 (17, 5, 5, 1, 1, 9500.00, 0.00, '2025-09-26 10:36:44'),
 (18, 5, 5, 1, 1, 9500.00, 0.00, '2025-09-26 10:36:44'),
 (19, 5, 5, 1, 1, 9500.00, 0.00, '2025-09-26 10:36:44'),
@@ -2568,13 +2588,13 @@ ALTER TABLE `device_registry`
 -- AUTO_INCREMENT for table `dockets`
 --
 ALTER TABLE `dockets`
-  MODIFY `docket_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `docket_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `docket_tokens`
 --
 ALTER TABLE `docket_tokens`
-  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `token_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `enrollments`
@@ -2592,7 +2612,7 @@ ALTER TABLE `fee_schedule`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `programmes`

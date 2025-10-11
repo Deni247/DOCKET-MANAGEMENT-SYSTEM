@@ -9,6 +9,10 @@ from reportlab.pdfgen import canvas
 from dotenv import load_dotenv
 import hashlib
 import secrets
+from utils.auth import jwt_required
+
+
+
 
 # Load environment variables
 load_dotenv()
@@ -240,3 +244,100 @@ def generate_docket():
         download_name=f"{student['student_number']}_{exam_type}_Docket.pdf",
         mimetype="application/pdf"
     )
+
+@dockets_bp.route("/payments", methods=["GET"])
+@jwt_required(role="admin")
+def get_payments():
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute("""
+        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, sb.total_fee, sb.amount_paid, sb.balance
+        FROM students s
+        JOIN programmes p ON s.programme_id = p.programme_id
+        LEFT JOIN student_balances sb ON s.id = sb.student_id
+        GROUP BY s.id
+        ORDER BY s.last_name, s.first_name
+    """)
+    students = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"ok": True, "students": students})
+
+
+@dockets_bp.route("/students/search", methods=["GET"])
+@jwt_required(role="admin")
+def search_students():
+    query = request.args.get("q", "")
+    if not query:
+        return jsonify({"ok": True, "students": []})
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    search_query = f"%{query}%"
+    cur.execute("""
+        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, sb.total_fee, sb.amount_paid, sb.balance
+        FROM students s
+        JOIN programmes p ON s.programme_id = p.programme_id
+        LEFT JOIN student_balances sb ON s.id = sb.student_id
+        WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
+        GROUP BY s.id
+        ORDER BY s.last_name, s.first_name
+    """, (search_query, search_query, search_query))
+    students = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({"ok": True, "students": students})
+
+@dockets_bp.route("/payments/update", methods=["POST"])
+@jwt_required(role="admin")
+def update_payment():
+    data = request.json
+    student_number = data.get("student_number")
+    amount = data.get("amount")
+
+    if not student_number or not amount:
+        return jsonify({"ok": False, "error": "Missing parameters"}), 400
+
+    try:
+        amount = float(amount)
+    except (ValueError, TypeError):
+        return jsonify({"ok": False, "error": "Invalid amount"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+
+    try:
+        conn.start_transaction()
+
+        # Get student_id and programme_id from students table
+        cur.execute("SELECT id, programme_id FROM students WHERE student_number = %s", (student_number,))
+        student = cur.fetchone()
+        if not student:
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "error": "Student not found"}), 404
+        
+        student_id = student["id"]
+        programme_id = student["programme_id"]
+
+        # Insert into payments table
+        cur.execute("""
+            INSERT INTO payments (student_id, programme_id, amount, payment_type, payment_date, payment_status)
+            VALUES (%s, %s, %s, %s, NOW(), %s)
+        """, (student_id, programme_id, amount, "General", "completed"))
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"ok": False, "error": f"Failed to update payment: {e}"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({"ok": True})
