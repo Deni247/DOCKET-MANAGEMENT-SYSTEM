@@ -6,6 +6,10 @@ import qrcode
 import mysql.connector
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
 from dotenv import load_dotenv
 import hashlib
 import secrets
@@ -35,54 +39,110 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # ---------------- Header ----------------
-    logo_path = "frontend/cavendish-logo.png"
+    # Styles
+    styles = getSampleStyleSheet()
+    style_normal = styles['Normal']
+    style_normal.fontName = 'Helvetica'
+    style_normal.fontSize = 10
+    style_bold_header = styles['h6']
+    style_bold_header.fontName = 'Helvetica-Bold'
+
+    # === REWRITTEN VERTICAL FLOW LOGIC ===
+    # Start drawing from the top, 1 inch from the margin.
+    y_pos = height - inch
+
+    # --- Header ---
+    logo_path = os.path.join(os.getcwd(), "Docket-system-frontend", "frontend", "cavendish-logo.png")
     if os.path.exists(logo_path):
-        p.drawInlineImage(logo_path, 50, height - 100, width=100, height=50)
-
-    p.setFont("Helvetica-Bold", 16)
-    p.drawCentredString(width / 2, height - 70, "CAVENDISH UNIVERSITY ZAMBIA")
+        p.drawImage(logo_path, inch - 0.5*inch, y_pos - 0.4*inch, width=1*inch, height=0.5*inch, preserveAspectRatio=True)
+    
     p.setFont("Helvetica-Bold", 14)
-    p.drawCentredString(width / 2, height - 100, f"{exam_type.upper()} DOCKET")
-
-    # ---------------- Student Info ----------------
-    p.setFont("Helvetica", 12)
-    y = height - 150
-    p.drawString(50, y, f"Name: {student['first_name']} {student['last_name']}")
-    p.drawString(50, y - 20, f"Student Number: {student['student_number']}")
-    p.drawString(50, y - 40, f"Programme: {student['programme_name']}")
-
-    # ---------------- Table Header ----------------
-    y -= 80
+    p.drawCentredString(width / 2, y_pos - 0.5 * inch, "Cavendish University Zambia Ltd.")
+    y_pos -= 0.8 * inch
     p.setFont("Helvetica-Bold", 12)
-    col1_x = 50
-    col2_x = 350
-    row_height = 20
-    p.drawString(col1_x, y, "Course Name")
-    p.drawString(col2_x, y, "Invigilator Signature")
-    p.line(50, y - 5, width - 50, y - 5)
-    y -= row_height
+    p.drawCentredString(width / 2, y_pos, student.get('faculty', 'Faculty of Business and Information Technology'))
+    y_pos -= 0.2 * inch
+    p.drawCentredString(width / 2, y_pos, student.get('programme_name', 'Bachelor of Science in Computing'))
+    y_pos -= 0.4 * inch
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(width / 2, y_pos, f"{exam_type.upper()} DOCKET")
+    y_pos -= 0.2 * inch
+    p.line(inch, y_pos, width - inch, y_pos)
+    y_pos -= 0.3 * inch # Margin below line
 
-    # ---------------- Table Rows ----------------
-    p.setFont("Helvetica", 11)
+    # --- Student Info ---
+    info_data = [
+        [Paragraph('<b>Date Issued:</b>', style_normal), Paragraph(datetime.now().strftime('%d/%m/%Y'), style_normal)],
+        [Paragraph('<b>Student Name:</b>', style_normal), Paragraph(f"{student.get('first_name', '')} {student.get('last_name', '')}", style_normal)],
+        [Paragraph('<b>Student Number:</b>', style_normal), Paragraph(student.get('student_number', ''), style_normal)],
+    ]
+    info_table = Table(info_data, colWidths=[1.5 * inch, 4.5 * inch])
+    info_table.setStyle(TableStyle([
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+        ('GRID', (0,0), (-1,-1), 1, colors.white) # Invisible grid to force rendering
+    ]))
+    
+    info_table_height = info_table.wrap(width - 2 * inch, 0)[1]
+    info_table.drawOn(p, inch, y_pos - info_table_height)
+    y_pos -= (info_table_height + 0.4 * inch) # Subtract height and add margin
+
+    # --- Main Courses Table ---
+    header = [Paragraph(h, style_bold_header) for h in ['Code', 'Module', 'Date', 'Time', 'Venue', "INVIGILATOR'S SIGNATURE"]]
+    table_data = [header]
     for course in courses:
-        p.drawString(col1_x, y, course["course_name"])
-        p.drawString(col2_x, y, "________________________")
-        y -= row_height
-        if y < 150:
-            p.showPage()
-            y = height - 100
+        table_data.append([Paragraph(c, style_normal) for c in [course.get('course_code', ''), course.get('course_name', ''), '', '', '', '']])
 
-    # ---------------- Signatures ----------------
-    y -= 40
-    p.drawString(50, y, "Verification Officer: ______________________")
-    p.drawString(350, y, "Student Signature: ________________________")
+    main_table = Table(table_data, colWidths=[0.7*inch, 2.4*inch, 0.6*inch, 0.6*inch, 0.6*inch, 1.4*inch])
+    main_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    main_table_height = main_table.wrap(width - 2 * inch, 0)[1]
+    main_table.drawOn(p, inch, y_pos - main_table_height)
+    y_pos -= (main_table_height + 0.4 * inch)
 
-    # ---------------- QR Code ----------------
+    # --- Notes ---
+    p.setFont("Helvetica-Bold", 11)
+    p.drawString(inch, y_pos, "Note:")
+    y_pos -= 0.25 * inch
+    exam_type_display = exam_type.upper()
+    notes = [
+        f"1. All Students are expected to sign the {exam_type_display} Attendance Register as evidence that one has sat for the {exam_type_display}.",
+        f"2. The {exam_type_display} docket is not the Exam Attendance Register.",
+        f"3. Students must only sign this document on the last day of their {exam_type_display} and leave the form with the invigilator.",
+        f"4. This document is a proof that the student has registered for the {exam_type_display}.",
+        "5. All students must possess a CUZ ID card and Authorization from Finance."
+    ]
+    for note in notes:
+        p.setFont("Helvetica", 10)
+        p.drawString(inch + 0.2*inch, y_pos, note)
+        y_pos -= 0.2 * inch
+    y_pos -= 0.4 * inch
+
+    # --- Signatures ---
+    p.drawString(inch, y_pos, "Signed: ............................................")
+    p.drawString(inch + 0.5*inch, y_pos - 0.2*inch, "Finance")
+    p.drawString(width - 4.5*inch, y_pos, "Signed: ............................................")
+    p.drawString(width - 4.0*inch, y_pos - 0.2*inch, "Student")
+    y_pos -= 1.0 * inch
+    p.drawString(inch, y_pos, "Signed: ............................................")
+    p.drawString(inch + 0.5*inch, y_pos - 0.2*inch, "Dean of BIT")
+    p.drawString(width - 4.5*inch, y_pos, "Date: ............................................")
+
+    # --- QR Code ---
     qr_img = qrcode.make(qr_data)
     qr_path = f"temp_qr_{student['student_number']}.png"
     qr_img.save(qr_path)
-    p.drawInlineImage(qr_path, width - 180, 60, 100, 100)
+    p.drawImage(qr_path, width - inch - 1.2*inch, 1.5*inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True)
     os.remove(qr_path)
 
     p.showPage()
@@ -114,11 +174,17 @@ def check_eligibility(student_id):
     return jsonify({"ok": True, "eligibility": eligibility_list})
 
 # ---------------- Route: Generate Docket ----------------
-@dockets_bp.route("/generate", methods=["POST"])
+@dockets_bp.route("/generate", methods=["GET", "POST"])
 def generate_docket():
-    data = request.json
-    student_id = data.get("student_id")
-    exam_type = data.get("exam_type")
+    if request.method == "POST":
+        data = request.json
+        student_id = data.get("student_id")
+        exam_type = data.get("exam_type")
+        is_preview = data.get("preview", False)
+    else:  # GET request
+        student_id = request.args.get("student_id")
+        exam_type = request.args.get("exam_type")
+        is_preview = request.args.get("preview", "false").lower() == "true"
 
     if not student_id or not exam_type:
         return jsonify({"ok": False, "error": "Missing parameters"}), 400
@@ -151,22 +217,22 @@ def generate_docket():
         }), 403
 
     # ---------------- Fetch student info ----------------
-    cur.execute("""
+    cur.execute('''
         SELECT s.id, s.first_name, s.last_name, s.student_number, s.programme_id, p.programme_name
         FROM students s
         JOIN programmes p ON s.programme_id = p.programme_id
         WHERE s.id = %s
-    """, (student_id,))
+    ''', (student_id,))
     student = cur.fetchone()
 
-    cur.execute("""
-        SELECT c.course_name
+    cur.execute('''
+        SELECT c.course_code, c.course_name
         FROM enrollments e
         JOIN curriculum cu ON e.curriculum_id = cu.curriculum_id
         JOIN courses c ON cu.course_id = c.course_id
         WHERE e.student_id = %s
         ORDER BY c.course_name ASC
-    """, (student_id,))
+    ''', (student_id,))
     courses = cur.fetchall()
 
     if not student:
@@ -190,10 +256,10 @@ def generate_docket():
         if not key_row:
             # No active key exists, create one
             new_secret_key = secrets.token_urlsafe(32)
-            cur.execute("""
+            cur.execute('''
                 INSERT INTO token_keys (key_name, secret_key, created_at, status)
                 VALUES (%s, %s, NOW(), %s)
-            """, ("default_verification_key", new_secret_key, "active"))
+            ''', ("default_verification_key", new_secret_key, "active"))
             token_key_id = cur.lastrowid
             secret_key_for_docket = new_secret_key
         else:
@@ -201,10 +267,10 @@ def generate_docket():
             secret_key_for_docket = key_row["secret_key"]
 
         # ---------------- Save to dockets table ----------------
-        cur.execute("""
+        cur.execute('''
             INSERT INTO dockets (student_id, programme_id, exam_type, qr_code, issued_at, status, printed_count, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-        """, (
+        ''', (
             student['id'],
             student['programme_id'],
             exam_type,
@@ -216,10 +282,10 @@ def generate_docket():
         docket_id = cur.lastrowid
 
         # ---------------- Save to docket_tokens table ----------------
-        cur.execute("""
+        cur.execute('''
             INSERT INTO docket_tokens (docket_id, token_hash, issued_at, status)
             VALUES (%s, %s, %s, %s)
-        """, (
+        ''', (
             docket_id,
             token_hash,
             datetime.now(),
@@ -240,8 +306,8 @@ def generate_docket():
     pdf_buffer = generate_docket_pdf(student, courses, exam_type, qr_data)
     return send_file(
         pdf_buffer,
-        as_attachment=True,
-        download_name=f"{student['student_number']}_{exam_type}_Docket.pdf",
+        as_attachment=not is_preview,  # Preview mode determines attachment
+        download_name=f"{student['student_number']}{exam_type} docket.pdf",
         mimetype="application/pdf"
     )
 

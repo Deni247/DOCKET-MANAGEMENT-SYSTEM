@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docket Preview</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; }
+        .top-bar {
+            background: #f0f0f0;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .top-bar h1 { margin: 0; font-size: 1.2em; }
+        .print-btn {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .print-btn:hover { background-color: #0056b3; }
+        #pdf-container { width: 100%; height: calc(100vh - 50px); }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        @media print {
+            .top-bar {
+                display: none;
+            }
+            #pdf-container {
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>Docket Preview</h1>
+        <button class="print-btn" onclick="downloadPdf()">Download Docket</button>
+    </div>
+    <div id="pdf-container">
+        <iframe id="pdf-iframe" title="Docket Preview"></iframe>
+    </div>
+
+<script>
+    function downloadPdf() {
+        const params = new URLSearchParams(window.location.search);
+        const student_id = params.get('student_id');
+        const exam_type = params.get('exam_type');
+
+        if (!student_id || !exam_type) {
+            alert("Cannot download docket: Missing student ID or exam type.");
+            return;
+        }
+
+        // Construct the URL for downloading (without preview=true)
+        const downloadUrl = `http://127.0.0.1:5000/dockets/generate?student_id=${student_id}&exam_type=${exam_type}`;
+
+        // Create a temporary link and click it to trigger the download.
+        // The 'download' attribute forces download behavior, and the browser will use the filename from the server.
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+        a.download = ''; // The presence of this attribute is what matters.
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Load the PDF into the iframe for preview
+    window.onload = () => {
+        const params = new URLSearchParams(window.location.search);
+        const student_id = params.get('student_id');
+        const exam_type = params.get('exam_type');
+
+        if (student_id && exam_type) {
+            const pdfUrl = `http://127.0.0.1:5000/dockets/generate?student_id=${student_id}&exam_type=${exam_type}&preview=true`;
+            document.getElementById('pdf-iframe').src = pdfUrl;
+        } else {
+            document.body.innerHTML = "<h1>Error: Missing student ID or exam type.</h1>";
+        }
+    };
+</script>
+</body>
+</html>

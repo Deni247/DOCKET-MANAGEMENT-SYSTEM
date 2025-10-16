@@ -59,23 +59,14 @@ async function loadDockets() {
 
 async function printDocket(exam_type) {
   const student_id = localStorage.getItem("student_id");
-  const res = await fetch("http://127.0.0.1:5000/dockets/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ student_id, exam_type })
-  });
-
-  if (res.ok) {
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${exam_type}_docket.pdf`;
-    a.click();
-  } else {
-    const json = await res.json();
-    alert(json.error || "Error generating docket");
+  if (!student_id) {
+    alert("No student session found.");
+    return;
   }
+  
+  // Open the preview page in a new tab
+  const previewUrl = `docket-preview.html?student_id=${student_id}&exam_type=${exam_type}`;
+  window.open(previewUrl, '_blank');
 }
 
 loadDockets();
