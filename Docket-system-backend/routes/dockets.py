@@ -249,7 +249,7 @@ def generate_docket():
     # ---------------- Generate QR data and token ----------------
     token_value = secrets.token_urlsafe(16)
     token_hash = hashlib.sha256(token_value.encode()).hexdigest()  # ✅ hash for secure storage
-    qr_data = f"{student['student_number']}_{exam_type}_{token_value}"
+    qr_data = f"{student['student_number']}|{exam_type}|{token_value}"
 
     try:
         # ---------------- Ensure token key exists for verification ----------------

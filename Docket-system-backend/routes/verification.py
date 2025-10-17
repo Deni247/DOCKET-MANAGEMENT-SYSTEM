@@ -25,6 +25,7 @@ def get_db_connection():
 def verify_docket():
     data = request.json
     qr_data = data.get("qr_data")
+    print(f"Received QR data: {qr_data}")
     admin_id = request.user['sub'] # Get admin ID from JWT
 
     if not qr_data:
@@ -33,7 +34,7 @@ def verify_docket():
     conn = None
     try:
         # --- 1. Parse QR Code Data ---
-        parts = qr_data.split('_')
+        parts = qr_data.split('|')
         if len(parts) != 3:
             raise ValueError("Invalid QR data format")
         student_number, exam_type, token_value = parts

@@ -1217,7 +1217,7 @@ CREATE TABLE `dockets` (
   `qr_code` varchar(255) NOT NULL,
   `issued_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` timestamp NULL DEFAULT NULL,
-  `status` enum('active','expired','reprinted') DEFAULT 'active',
+  `status` enum('active','expired','reprinted','issued') DEFAULT 'active',
   `printed_count` int(11) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -1244,7 +1244,8 @@ CREATE TABLE `docket_tokens` (
   `token_hash` varchar(255) NOT NULL,
   `issued_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `expires_at` timestamp NULL DEFAULT NULL,
-  `status` enum('active','expired','reprinted') DEFAULT 'active'
+  `status` enum('active','expired','reprinted','used') DEFAULT 'active',
+  `used_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -2400,7 +2401,7 @@ CREATE TABLE `verifications` (
   `docket_id` int(11) NOT NULL,
   `scanned_by` int(11) NOT NULL,
   `scanned_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `scan_result` enum('valid','expired','reprinted','forged') NOT NULL,
+  `scan_result` enum('valid','invalid','expired','reprinted','forged') NOT NULL,
   `device_id` int(11) DEFAULT NULL,
   `remarks` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
