@@ -1,0 +1,34 @@
+NGROK Setup and Application Testing Guide
+
+This document outlines how to set up ngrok to expose your local development server to the internet and how to test the docket scanning feature.
+
+*** IMPORTANT: Ensure your Flask backend server is running before starting ngrok. ***
+
+1.  **Download and Install ngrok:**
+    If you don't have ngrok installed, download it from the official website: https://ngrok.com/download
+    Follow the installation instructions for your operating system.
+    You may also need to set up your authtoken, which you can find on your ngrok dashboard after signing up.
+
+2.  **Start ngrok:**
+    Open your terminal or command prompt.
+    Run the following command to expose your Flask backend server (which typically runs on port 5000):
+    ```bash
+    ngrok http 5000
+    ```
+    Ngrok will display a public URL (e.g., `https://xxxx-xxxx-xxxx-xxxx.ngrok-free.app`). This is your public access point.
+
+3.  **Access the Application:**
+    Open a web browser and navigate to the ngrok public URL provided in your terminal.
+    You should be able to access the frontend of your application through this URL.
+
+4.  **Test the Docket Scanning Feature:**
+    a.  **Log in as an Admin:** Navigate to the admin login page (e.g., `https://your-ngrok-url/admin-login.html`) and log in.
+    b.  **Generate a New Docket:** Go to the docket generation section of the admin dashboard. Generate a new docket for a student and an exam type. This will create a PDF with a QR code.
+    c.  **Open the Scanner:** Navigate to the docket verification page (e.g., `https://your-ngrok-url/verify-docket.html`).
+    d.  **Scan the QR Code:** Point your camera at the QR code on the newly generated docket.
+
+5.  **Expected Behavior:**
+    *   The scanner should successfully read the QR code.
+    *   The application should display "DOCKET VALID" along with the student's details (Name, Student Number, Programme, Exam Type).
+    *   If you try to scan the *same* valid docket again, it should now show "DOCKET INVALID - Docket is invalid, has already been used, or does not exist."
+    *   If you scan a completely invalid QR code, it should also show "DOCKET INVALID - Docket is invalid, has already been used, or does not exist."
