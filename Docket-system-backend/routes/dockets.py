@@ -152,6 +152,7 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
 
 # ---------------- Route: Check Eligibility ----------------
 @dockets_bp.route("/eligibility/<student_id>", methods=["GET"])
+@jwt_required()
 def check_eligibility(student_id):
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
@@ -175,6 +176,7 @@ def check_eligibility(student_id):
 
 # ---------------- Route: Generate Docket ----------------
 @dockets_bp.route("/generate", methods=["GET", "POST"])
+@jwt_required()
 def generate_docket():
     if request.method == "POST":
         data = request.json

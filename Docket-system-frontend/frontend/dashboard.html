@@ -3,6 +3,12 @@
 <head>
     <title>Student Dashboard</title>
     <link rel="stylesheet" type="text/css" href="dashboard.css">
+    <script>
+        // Security check: Redirect to login if no session is found
+        if (!localStorage.getItem('student_id')) {
+            window.location.href = 'students-portal.html';
+        }
+    </script>
 </head>
 <body>
 
@@ -43,7 +49,7 @@ async function loadDashboard() {
     }
 
     try {
-        const res = await fetch("http://127.0.0.1:5000/me", {
+        const res = await fetch("/me", {
             method: "GET",
             credentials: "include",
             headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
@@ -66,7 +72,7 @@ async function loadDashboard() {
 }
 
 document.getElementById("logoutBtn").onclick = async () => {
-    await fetch("http://127.0.0.1:5000/logout", {
+    await fetch("/logout", {
         method: "POST",
         credentials: "include"
     });

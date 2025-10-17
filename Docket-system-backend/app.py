@@ -12,9 +12,14 @@ from passlib.hash import bcrypt
 load_dotenv()
 
 # Flask app setup
+# Construct the absolute path to the frontend directory for robust static file serving
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(backend_dir)
+frontend_dir = os.path.join(project_root, "Docket-system-frontend", "frontend")
+
 app = Flask(
     __name__,
-    static_folder="frontend",   # Frontend HTML, CSS, JS
+    static_folder=frontend_dir,   # Use the correct absolute path
     static_url_path=""
 )
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
@@ -76,69 +81,75 @@ def home():
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json or {}
-    username = data.get("student_number")
-    password = data.get("password")
-    role = data.get("role", "student")
-    use_cookie = data.get("use_cookie", False)
+    try:
+        data = request.json or {}
+        username = data.get("student_number")
+        password = data.get("password")
+        role = data.get("role", "student")
+        use_cookie = data.get("use_cookie", False)
 
-    if not username or not password:
-        return jsonify({"ok": False, "error": "Missing credentials"}), 400
+        if not username or not password:
+            return jsonify({"ok": False, "error": "Missing credentials"}), 400
 
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True)
+        conn = get_db_connection()
+        cur = conn.cursor(dictionary=True)
 
-    if role == "admin":
-        cur.execute(
-            "SELECT admin_id AS id, username, password_hash FROM admins WHERE username=%s LIMIT 1",
-            (username,)
-        )
-    else:
-        cur.execute(
-            "SELECT id, student_number, password_hash, first_name, last_name "
-            "FROM students WHERE student_number=%s LIMIT 1",
-            (username,)
-        )
+        if role == "admin":
+            cur.execute(
+                "SELECT admin_id AS id, username, password_hash FROM admins WHERE username=%s LIMIT 1",
+                (username,)
+            )
+        else:
+            cur.execute(
+                "SELECT id, student_number, password_hash, first_name, last_name "
+                "FROM students WHERE student_number=%s LIMIT 1",
+                (username,)
+            )
 
-    user = cur.fetchone()
-    cur.close()
-    conn.close()
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
 
-    if not user or not user.get("password_hash"):
-        return jsonify({"ok": False, "error": "Invalid credentials"}), 401
+        if not user or not user.get("password_hash"):
+            return jsonify({"ok": False, "error": "Invalid credentials"}), 401
 
-    if not bcrypt.verify(password, user["password_hash"]):
-        return jsonify({"ok": False, "error": "Invalid credentials"}), 401
+        if not bcrypt.verify(password, user["password_hash"]):
+            return jsonify({"ok": False, "error": "Invalid credentials"}), 401
 
-    now = datetime.datetime.utcnow()
-    payload = {
-        "sub": str(user["id"]),
-        "role": role,
-        "iat": now,
-        "exp": now + datetime.timedelta(seconds=JWT_EXP_SECONDS)
-    }
-
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
-
-    resp = jsonify({
-        "ok": True,
-        "token": token,
-        "user": {
-            "id": user["id"],
-            "first_name": user.get("first_name"),
-            "last_name": user.get("last_name"),
-            "role": role
+        now = datetime.datetime.utcnow()
+        payload = {
+            "sub": str(user["id"]),
+            "role": role,
+            "iat": now,
+            "exp": now + datetime.timedelta(seconds=JWT_EXP_SECONDS)
         }
-    })
 
-    if use_cookie:
-        resp.set_cookie(
-            "access_token",
-            token,
-            httponly=True,
-            samesite="Lax"
-        )
-    return resp
+        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGO)
+
+        resp = jsonify({
+            "ok": True,
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "first_name": user.get("first_name"),
+                "last_name": user.get("last_name"),
+                "role": role
+            }
+        })
+
+        if use_cookie:
+            resp.set_cookie(
+                "access_token",
+                token,
+                httponly=True,
+                samesite="Lax"
+            )
+        return resp
+
+    except mysql.connector.Error as err:
+        # General handler for database errors (e.g., connection failed)
+        # In a real app, you would log this error `app.logger.error(err)`
+        return jsonify({"ok": False, "error": "Connection error. Please try again later."}), 500
 
 
 @app.route("/logout", methods=["POST"])
@@ -175,9 +186,11 @@ def serve_static_files(path):
 
 # -------------------- Register Blueprints --------------------
 from routes.dockets import dockets_bp
+from routes.verification import verification_bp
 app.register_blueprint(dockets_bp, url_prefix="/dockets")
+app.register_blueprint(verification_bp, url_prefix="/verification")
 
 
 # -------------------- Run Server --------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)

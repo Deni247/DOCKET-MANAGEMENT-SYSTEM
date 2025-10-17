@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="dashboard.css">
+    <title>Verify Docket</title>
+    <script>
+        // Security check: Redirect to login if not an admin
+        if (localStorage.getItem('role') !== 'admin') {
+            window.location.href = 'admin-login.html';
+        }
+    </script>
+    <style>
+        .main { max-width: 600px; margin-left: auto; margin-right: auto; text-align: center; }
+        #reader { width: 100%; border: 2px solid #f0f0f0; border-radius: 8px; }
+        #result-container { margin-top: 20px; }
+        .result-card { padding: 20px; border-radius: 8px; text-align: center; }
+        .result-valid { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .result-invalid { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .student-details { text-align: left; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo">
+            <h1>Admin Dashboard</h1>
+        </div>
+        <button id="logoutBtn">Logout</button>
+    </header>
+
+    <main class="main">
+        <h2>Point Camera at Docket QR Code</h2>
+        <div id="reader"></div>
+        <div id="result-container">
+            <p>Waiting for scan...</p>
+        </div>
+    </main>
+
+    <!-- QR Code Scanning Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script>
+        const token = localStorage.getItem("token");
+        const resultContainer = document.getElementById("result-container");
+
+        async function onScanSuccess(decodedText, decodedResult) {
+            // Handle the scanned code here.
+            console.log(`Code matched = ${decodedText}`, decodedResult);
+
+            // Stop scanning after one successful scan.
+            html5QrcodeScanner.clear();
+
+            resultContainer.innerHTML = "<p>Verifying...</p>";
+
+            try {
+                const res = await fetch("/verification/verify", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ qr_data: decodedText })
+                });
+
+                const json = await res.json();
+                let resultHtml = "";
+
+                if (json.ok) {
+                    const student = json.student;
+                    resultHtml = `
+                        <div class="result-card result-valid">
+                            <h2>DOCKET VALID</h2>
+                            <div class="student-details">
+                                <p><strong>Name:</strong> ${student.first_name} ${student.last_name}</p>
+                                <p><strong>Student Number:</strong> ${student.student_number}</p>
+                                <p><strong>Programme:</strong> ${student.programme_name}</p>
+                                <p><strong>Exam Type:</strong> ${json.exam_type.toUpperCase()}</p>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultHtml = `
+                        <div class="result-card result-invalid">
+                            <h2>DOCKET INVALID</h2>
+                            <p>${json.error || "Verification failed."}</p>
+                        </div>
+                    `;
+                }
+                resultContainer.innerHTML = resultHtml;
+
+            } catch (err) {
+                console.error("Verification failed:", err);
+                resultContainer.innerHTML = '<div class="result-card result-invalid"><h3>An unexpected error occurred.</h3></div>';
+            }
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure, usually better to ignore and keep scanning.
+            // console.warn(`Code scan error = ${error}`);
+        }
+
+        let html5QrcodeScanner;
+        document.addEventListener('DOMContentLoaded', (event) => {
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", 
+                { fps: 10, qrbox: {width: 250, height: 250} },
+                /* verbose= */ false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        });
+
+        document.getElementById("logoutBtn").onclick = () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href = "admin-login.html";
+        };
+    </script>
+</body>
+</html>

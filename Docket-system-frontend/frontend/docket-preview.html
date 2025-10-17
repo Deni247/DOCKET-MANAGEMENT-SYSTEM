@@ -58,7 +58,7 @@
         }
 
         // Construct the URL for downloading (without preview=true)
-        const downloadUrl = `http://127.0.0.1:5000/dockets/generate?student_id=${student_id}&exam_type=${exam_type}`;
+        const downloadUrl = `/dockets/generate?student_id=${student_id}&exam_type=${exam_type}`;
 
         // Create a temporary link and click it to trigger the download.
         // The 'download' attribute forces download behavior, and the browser will use the filename from the server.
@@ -78,7 +78,7 @@
         const exam_type = params.get('exam_type');
 
         if (student_id && exam_type) {
-            const pdfUrl = `http://127.0.0.1:5000/dockets/generate?student_id=${student_id}&exam_type=${exam_type}&preview=true`;
+            const pdfUrl = `/dockets/generate?student_id=${student_id}&exam_type=${exam_type}&preview=true`;
             document.getElementById('pdf-iframe').src = pdfUrl;
         } else {
             document.body.innerHTML = "<h1>Error: Missing student ID or exam type.</h1>";

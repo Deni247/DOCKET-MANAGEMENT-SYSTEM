@@ -19,18 +19,23 @@
         <input id="admin_username" type="text" placeholder="Enter Admin Username">
         <input id="admin_password" type="password" placeholder="Enter Admin Password">
         <button id="adminLoginBtn">Login as Admin</button>
-    </div>
 
-    <!-- Output -->
-    <pre id="out"></pre>
+        <!-- Error Message Display -->
+        <div id="errorMessage" class="error-message"></div>
+    </div>
 
 <script>
 document.getElementById("adminLoginBtn").onclick = async () => {
     const username = document.getElementById("admin_username").value;
     const password = document.getElementById("admin_password").value;
+    const errorMessageDiv = document.getElementById("errorMessage");
+
+    // Reset error message
+    errorMessageDiv.style.display = 'none';
+    errorMessageDiv.innerText = '';
 
     try {
-        const res = await fetch("http://127.0.0.1:5000/login", {
+        const res = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -43,19 +48,25 @@ document.getElementById("adminLoginBtn").onclick = async () => {
         });
 
         const json = await res.json();
-        document.getElementById("out").textContent = JSON.stringify(json, null, 2);
 
         if (json.ok) {
             // Store the token (optional)
             if (json.token) localStorage.setItem("token", json.token);
+            localStorage.setItem("role", "admin");
 
             // Redirect to admin dashboard
             window.location.href = "admin-dashboard.html";
         } else {
-            alert("Admin login failed: " + (json.error || "Invalid credentials"));
+            // Display user-friendly error
+            errorMessageDiv.innerText = json.error === "Connection error. Please try again later."
+                ? "Database connection error. Please try again later."
+                : "Login failed. Please check your credentials and try again.";
+            errorMessageDiv.style.display = 'block';
         }
     } catch (err) {
-        document.getElementById("out").textContent = "Error: " + err;
+        // Display generic network/fetch error
+        errorMessageDiv.innerText = "An unexpected error occurred. Please check your network and try again.";
+        errorMessageDiv.style.display = 'block';
     }
 };
 </script>

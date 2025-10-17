@@ -54,3 +54,18 @@ button {
 button:hover {
     background-color: #0b2e5a;
 }
+
+/* Error Message Style */
+.error-message {
+    color: #004085; /* Blue */
+    background-color: #cce5ff; /* Light blue */
+    border: 1px solid #b8daff;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    width: 320px;
+    box-sizing: border-box;
+    text-align: center;
+    font-weight: bold;
+    display: none; /* Hidden by default */
+}

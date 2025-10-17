@@ -4,3 +4,4 @@ python-dotenv
 passlib
 PyJWT
 flask-cors
+gunicorn

@@ -11,6 +11,9 @@
         <h1>Cavendish Student Portal</h1>
     </header>
 
+    <!-- Cavendish Logo -->
+    <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo" width="150">
+
     <a href="admin-login.html" class="forgot">Admin Login</a>
 
     <!-- Input fields -->
@@ -20,19 +23,24 @@
     <!-- Forgot password -->
     <a href="#" class="forgot">Forgot password?</a>
 
+    <!-- Error Message Display -->
+    <div id="errorMessage" class="error-message"></div>
+
     <!-- Login button -->
     <button id="loginBtn">Login</button>
-
-    <!-- Output -->
-    <pre id="out"></pre>
 
 <script>
 document.getElementById("loginBtn").onclick = async () => {
     const student_number = document.getElementById("student_number").value;
     const password = document.getElementById("password").value;
+    const errorMessageDiv = document.getElementById("errorMessage");
+
+    // Reset error message
+    errorMessageDiv.style.display = 'none';
+    errorMessageDiv.innerText = '';
 
     try {
-        const res = await fetch("http://127.0.0.1:5000/login", {
+        const res = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -45,24 +53,27 @@ document.getElementById("loginBtn").onclick = async () => {
         });
 
         const json = await res.json();
-        document.getElementById("out").textContent = JSON.stringify(json, null, 2);
 
         if (json.ok) {
-            // Store the token (optional)
-            if (json.token) localStorage.setItem("token", json.token);
-
-            // ✅ Store student data
+            // Store student data
             localStorage.setItem("student_first_name", json.user.first_name);
             localStorage.setItem("student_last_name", json.user.last_name);
             localStorage.setItem("student_id", json.user.id);
+            localStorage.setItem("role", "student");
 
             // Redirect to dashboard
             window.location.href = "dashboard.html";
         } else {
-            alert("Login failed: " + (json.error || "Invalid credentials"));
+            // Display user-friendly error
+            errorMessageDiv.innerText = json.error === "Connection error. Please try again later."
+                ? "Database connection error. Please try again later."
+                : "Login failed. Please check your credentials and try again.";
+            errorMessageDiv.style.display = 'block';
         }
     } catch (err) {
-        document.getElementById("out").textContent = "Error: " + err;
+        // Display generic network/fetch error
+        errorMessageDiv.innerText = "An unexpected error occurred. Please check your network and try again.";
+        errorMessageDiv.style.display = 'block';
     }
 };
 </script>

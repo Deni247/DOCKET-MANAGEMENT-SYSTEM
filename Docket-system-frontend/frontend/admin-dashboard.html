@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="dashboard.css">
     <title>Admin Dashboard</title>
+    <script>
+        // Security check: Redirect to login if not an admin
+        if (localStorage.getItem('role') !== 'admin') {
+            window.location.href = 'admin-login.html';
+        }
+    </script>
 </head>
 <body>
     <header>
@@ -19,6 +25,9 @@
         <div class="search-container">
             <input type="text" id="search-input" placeholder="Search by name or student number...">
             <button id="searchBtn">Search</button>
+        </div>
+        <div class="verify-link-container" style="text-align: center; margin: 20px;">
+            <a href="verify-docket.html"><button>Verify a Docket</button></a>
         </div>
 
         <div id="results-container">
@@ -39,7 +48,7 @@ document.getElementById("searchBtn").onclick = async () => {
     resultsContainer.innerHTML = "<p>Loading...</p>";
 
     try {
-        const res = await fetch(`http://127.0.0.1:5000/dockets/students/search?q=${query}`, {
+        const res = await fetch(`/dockets/students/search?q=${query}`, {
             headers: {
                 "Authorization": `Bearer ${token}`
             }
@@ -92,7 +101,7 @@ async function updatePayment(student_number) {
     }
 
     try {
-        const res = await fetch("http://127.0.0.1:5000/dockets/payments/update", {
+        const res = await fetch("/dockets/payments/update", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -120,7 +129,7 @@ async function updatePayment(student_number) {
 
 document.getElementById("logoutBtn").onclick = async () => {
     try {
-        const res = await fetch("http://127.0.0.1:5000/logout", {
+        await fetch("/logout", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -128,18 +137,13 @@ document.getElementById("logoutBtn").onclick = async () => {
             },
             credentials: "include"
         });
-
-        const json = await res.json();
-
-        if (json.ok) {
-            localStorage.removeItem("token");
-            window.location.href = "admin-login.html";
-        } else {
-            alert("Logout failed: " + (json.error || "Unknown error"));
-        }
+        // No need to check response, just clear session and redirect
     } catch (err) {
         console.error("Error during logout:", err);
-        alert("An error occurred during logout.");
+    } finally {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        window.location.href = "admin-login.html";
     }
 };
 </script>
