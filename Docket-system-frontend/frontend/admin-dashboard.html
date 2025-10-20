@@ -339,11 +339,11 @@
             } catch (err) {
                 resultContainer.innerHTML = '<div class="result-card result-invalid"><h3>An unexpected error occurred.</h3></div>';
             } finally {
-                // Re-enable scanning after a 7-second delay
+                // Re-enable scanning after a 15-second delay
                 setTimeout(() => {
                     isScanProcessing = false;
                     resultContainer.innerHTML = "<p>Waiting for scan...</p>"; // Clear previous result
-                }, 7000); // 7 seconds
+                }, 15000); // 15 seconds
             }
         }
 
