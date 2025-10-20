@@ -150,12 +150,59 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     buffer.seek(0)
     return buffer
 
+import json
+
+# Define file paths securely at the top level of the module
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(backend_dir))
+SETTINGS_FILE = os.path.join(project_root, 'Docket-system-backend', 'exam_settings.json')
+BLOCKLIST_FILE = os.path.join(project_root, 'Docket-system-backend', 'blocked_students.json')
+
+# Helper function to read JSON files
+def read_json_file(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        if 'settings' in file_path:
+            return {"active_exam": "cat1"}
+        else:
+            return []
+
 # ---------------- Route: Check Eligibility ----------------
 @dockets_bp.route("/eligibility/<student_id>", methods=["GET"])
 @jwt_required()
 def check_eligibility(student_id):
+    # Read settings and blocklist first
+    settings = read_json_file(SETTINGS_FILE)
+    blocklist = read_json_file(BLOCKLIST_FILE)
+    active_exam = settings.get("active_exam", "cat1")
+
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
+
+    # Get student number to check against the blocklist
+    cur.execute("SELECT student_number FROM students WHERE id=%s LIMIT 1", (student_id,))
+    student_info = cur.fetchone()
+    if not student_info:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Student not found."}), 404
+
+    student_number = student_info['student_number']
+
+    # 1. Check if student is blocked
+    if student_number in blocklist:
+        eligibility_list = [
+            {"exam_type": "ca1", "eligible": False, "reason": "Account blocked. Please visit the Retentions Office."},
+            {"exam_type": "ca2", "eligible": False, "reason": "Account blocked. Please visit the Retentions Office."},
+            {"exam_type": "exam", "eligible": False, "reason": "Account blocked. Please visit the Retentions Office."},
+        ]
+        cur.close()
+        conn.close()
+        return jsonify({"ok": True, "eligibility": eligibility_list})
+
+    # 2. Get clearance status from DB
     cur.execute(
         "SELECT ca1_status, ca2_status, exam_status FROM clearances WHERE student_id=%s LIMIT 1",
         (student_id,),
@@ -167,11 +214,30 @@ def check_eligibility(student_id):
     if not row:
         return jsonify({"ok": False, "error": "No clearance records found."}), 404
 
-    eligibility_list = [
-        {"exam_type": "ca1", "eligible": row["ca1_status"] == "eligible"},
-        {"exam_type": "ca2", "eligible": row["ca2_status"] == "eligible"},
-        {"exam_type": "exam", "eligible": row["exam_status"] == "eligible"},
-    ]
+    # 3. Determine eligibility based on active exam and clearance status
+    db_status = {
+        "ca1": row["ca1_status"] == "eligible",
+        "ca2": row["ca2_status"] == "eligible",
+        "exam": row["exam_status"] == "eligible",
+    }
+
+    eligibility_list = []
+    for exam_type in ["ca1", "ca2", "exam"]:
+        is_active = (exam_type == active_exam)
+        is_clear = db_status[exam_type]
+        reason = ""
+        
+        if not is_active:
+            reason = "Docket not currently active."
+        elif not is_clear:
+            reason = "Not cleared by Finance. Please visit the Retentions Office."
+
+        eligibility_list.append({
+            "exam_type": exam_type,
+            "eligible": is_active and is_clear,
+            "reason": reason
+        })
+
     return jsonify({"ok": True, "eligibility": eligibility_list})
 
 # ---------------- Route: Generate Docket ----------------
@@ -191,10 +257,33 @@ def generate_docket():
     if not student_id or not exam_type:
         return jsonify({"ok": False, "error": "Missing parameters"}), 400
 
+    # --- New Eligibility Check --- 
+    settings = read_json_file(SETTINGS_FILE)
+    blocklist = read_json_file(BLOCKLIST_FILE)
+    active_exam = settings.get("active_exam", "cat1")
+
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
 
-    # Check clearance
+    cur.execute("SELECT student_number FROM students WHERE id=%s LIMIT 1", (student_id,))
+    student_info = cur.fetchone()
+    if not student_info:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Student not found."}), 404
+
+    if student_info['student_number'] in blocklist:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": "Account blocked. Please visit the Retentions Office."}), 403
+
+    if exam_type != active_exam:
+        cur.close()
+        conn.close()
+        return jsonify({"ok": False, "error": f"Docket for {exam_type.upper()} is not currently active."}), 403
+    # --- End New Eligibility Check ---
+
+    # Check clearance from DB (original check)
     cur.execute(
         "SELECT ca1_status, ca2_status, exam_status FROM clearances WHERE student_id=%s LIMIT 1",
         (student_id,),

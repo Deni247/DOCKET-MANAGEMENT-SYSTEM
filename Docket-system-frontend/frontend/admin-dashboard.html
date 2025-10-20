@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +6,6 @@
     <link rel="stylesheet" href="dashboard.css">
     <title>Admin Dashboard</title>
     <script>
-        // Security check: Redirect to login if not an admin
         if (localStorage.getItem('role') !== 'admin') {
             window.location.href = 'admin-login.html';
         }
@@ -22,64 +20,39 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .tab-button {
-            background: none;
-            border: none;
-            padding: 1rem 1.5rem;
-            cursor: pointer;
-            font-size: 1.05rem;
-            color: #555;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            font-weight: 500;
+            background: none; border: none; padding: 1rem 1.5rem; cursor: pointer;
+            font-size: 1.05rem; color: #555; border-bottom: 3px solid transparent;
+            transition: all 0.3s ease; font-weight: 500;
         }
-        .tab-button:hover {
-            background-color: #f7f7f7;
-            color: #002366;
-        }
-        .tab-button.active {
-            color: #002366;
-            border-bottom-color: #FFD700;
-            font-weight: 700;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        #welcome h2 {
-            color: #002366;
-            font-weight: 700;
-        }
-        #welcome p {
-            color: #333;
-            font-size: 1.1rem;
-        }
+        .tab-button:hover { background-color: #f7f7f7; color: #002366; }
+        .tab-button.active { color: #002366; border-bottom-color: #FFD700; font-weight: 700; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        #welcome h2 { color: #002366; font-weight: 700; }
+        #welcome p { color: #333; font-size: 1.1rem; }
         #reader { width: 100%; max-width: 500px; margin: 20px auto; border: 2px solid #f0f0f0; border-radius: 8px; }
         #result-container { margin-top: 20px; }
         .result-card { padding: 20px; border-radius: 8px; text-align: center; }
         .result-valid { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
         .result-invalid { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
         .student-details { text-align: left; margin-top: 15px; }
-        .instructions {
-            max-width: 500px;
-            margin: 20px auto;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-left: 4px solid #FFD700;
-            color: #333;
-        }
-        .instructions h4 {
-            margin-top: 0;
-            color: #002366;
-        }
-        .instructions ul {
-            padding-left: 20px;
-            margin-bottom: 0;
-        }
-        .instructions li {
-            margin-bottom: 8px;
-        }
+        .instructions { max-width: 500px; margin: 20px auto; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #FFD700; color: #333; }
+        .instructions h4 { margin-top: 0; color: #002366; }
+        .instructions ul { padding-left: 20px; margin-bottom: 0; }
+        .instructions li { margin-bottom: 8px; }
+        .settings-card { background-color: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 600px; margin: 2rem auto; }
+        .settings-card h3 { color: #002366; margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 0.5rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; }
+        .form-group input[type="radio"] { margin-right: 0.5rem; }
+        .save-btn { background-color: #002366; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; font-size: 1rem; font-weight: bold; }
+        .docket-controls { border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem; }
+        .docket-controls .status { font-weight: bold; }
+        .docket-controls .status-blocked { color: #dc3545; }
+        .docket-controls .status-active { color: #28a745; }
+        .block-btn, .unblock-btn { width: 100%; border: none; padding: 0.75rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 0.5rem; }
+        .block-btn { background-color: #dc3545; color: white; }
+        .unblock-btn { background-color: #28a745; color: white; }
     </style>
 </head>
 <body>
@@ -93,14 +66,15 @@
 
     <main>
         <div class="tabs">
-            <button class="tab-button active" onclick="openTab('welcome')">Welcome</button>
-            <button class="tab-button" onclick="openTab('payments')">Update Payments</button>
-            <button class="tab-button" onclick="openTab('verify')">Verify Docket</button>
+            <button class="tab-button active" onclick="openTab(event, 'welcome')">Welcome</button>
+            <button class="tab-button" onclick="openTab(event, 'payments')">Student Management</button>
+            <button class="tab-button" onclick="openTab(event, 'controls')">Docket Controls</button>
+            <button class="tab-button" onclick="openTab(event, 'verify')">Verify Docket</button>
         </div>
 
         <div id="welcome" class="tab-content active">
             <h2>Welcome, Admin!</h2>
-            <p>This is your central hub for managing student dockets. Please select a tab to get started.</p>
+            <p>Use the tabs to manage student payments, control docket access, and verify dockets.</p>
         </div>
 
         <div id="payments" class="tab-content">
@@ -108,8 +82,21 @@
                 <input type="text" id="search-input" placeholder="Search by name or student number...">
                 <button id="searchBtn">Search</button>
             </div>
-            <div id="results-container">
-                <!-- Search results will be displayed here -->
+            <div id="results-container"><!-- Search results will be displayed here --></div>
+        </div>
+
+        <div id="controls" class="tab-content">
+            <div class="settings-card">
+                <h3>Active Docket Settings</h3>
+                <div class="form-group">
+                    <label>Select the only docket type that eligible students can currently print:</label>
+                    <div>
+                        <input type="radio" id="exam_ca1" name="active_exam" value="ca1"><label for="exam_ca1"> CA 1</label><br>
+                        <input type="radio" id="exam_ca2" name="active_exam" value="ca2"><label for="exam_ca2"> CA 2</label><br>
+                        <input type="radio" id="exam_exam" name="active_exam" value="exam"><label for="exam_exam"> Final Exam</label><br>
+                    </div>
+                </div>
+                <button class="save-btn" onclick="saveExamSettings()">Save Settings</button>
             </div>
         </div>
 
@@ -131,80 +118,94 @@
         </div>
     </main>
 
-    <!-- QR Code Scanning Library -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
     <script>
         const token = localStorage.getItem("token");
+        let blockedStudentsList = [];
 
-        function openTab(tabName) {
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-            });
+        async function loadAdminControlsData() {
+            try {
+                const [settingsRes, blockedRes] = await Promise.all([
+                    fetch('/admin/settings', { headers: { "Authorization": `Bearer ${token}` } }),
+                    fetch('/admin/blocked-students', { headers: { "Authorization": `Bearer ${token}` } })
+                ]);
 
-            const tabButtons = document.querySelectorAll('.tab-button');
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
-            });
+                if (settingsRes.ok) {
+                    const settingsJson = await settingsRes.json();
+                    const activeExam = settingsJson.settings.active_exam;
+                    const radioBtn = document.querySelector(`input[name='active_exam'][value='${activeExam}']`);
+                    if (radioBtn) {
+                        radioBtn.checked = true;
+                    }
+                }
 
-            document.getElementById(tabName).classList.add('active');
-            event.currentTarget.classList.add('active');
-
-            if (tabName === 'verify') {
-                startScanner();
-            } else {
-                stopScanner();
+                if (blockedRes.ok) {
+                    const blockedJson = await blockedRes.json();
+                    blockedStudentsList = blockedJson.blocked_students || [];
+                }
+            } catch (err) {
+                console.error("Error loading admin data:", err);
+                alert("Could not load admin settings. Please refresh.");
             }
         }
 
-        // Payments tab script
+        function openTab(event, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (tabName === 'verify') startScanner(); else stopScanner();
+        }
+
         document.getElementById("searchBtn").onclick = async () => {
             const query = document.getElementById("search-input").value;
-            if (!query) {
-                return;
-            }
+            if (!query) return;
 
             const resultsContainer = document.getElementById("results-container");
             resultsContainer.innerHTML = "<p>Loading...</p>";
 
             try {
-                const res = await fetch(`/dockets/students/search?q=${query}`, {
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
+                const res = await fetch(`/dockets/students/search?q=${query}`, { headers: { "Authorization": `Bearer ${token}` } });
                 const json = await res.json();
 
                 if (json.ok) {
-                    const students = json.students;
                     resultsContainer.innerHTML = "";
-                    if (students.length === 0) {
+                    if (json.students.length === 0) {
                         resultsContainer.innerHTML = "<p>No students found.</p>";
-                    } else {
-                        students.forEach(student => {
-                            const studentCard = document.createElement("div");
-                            studentCard.className = "student-card";
-                            studentCard.innerHTML = `
-                                <div class="student-info">
-                                    <h3>${student.first_name} ${student.last_name}</h3>
-                                    <p><strong>Student Number:</strong> ${student.student_number}</p>
-                                    <p><strong>Programme:</strong> ${student.programme_name}</p>
-                                </div>
-                                <div class="balance-info">
-                                    <p><strong>Total Fee:</strong> ${student.total_fee}</p>
-                                    <p><strong>Amount Paid:</strong> ${student.amount_paid}</p>
-                                    <p><strong>Balance:</strong> ${student.balance}</p>
-                                </div>
-                                <div class="payment-form">
-                                    <h4>Update Payment</h4>
-                                    <input type="number" id="amount-${student.student_number}" placeholder="Amount">
-                                    <button onclick="updatePayment('${student.student_number}')">Update Payment</button>
-                                </div>
-                            `;
-                            resultsContainer.appendChild(studentCard);
-                        });
+                        return;
                     }
+                    json.students.forEach(student => {
+                        const isBlocked = blockedStudentsList.includes(student.student_number);
+                        const studentCard = document.createElement("div");
+                        studentCard.className = "student-card";
+                        studentCard.innerHTML = `
+                            <div class="student-info">
+                                <h3>${student.first_name} ${student.last_name}</h3>
+                                <p><strong>Student Number:</strong> ${student.student_number}</p>
+                                <p><strong>Programme:</strong> ${student.programme_name}</p>
+                            </div>
+                            <div class="balance-info">
+                                <p><strong>Total Fee:</strong> ${student.total_fee}</p>
+                                <p><strong>Amount Paid:</strong> ${student.amount_paid}</p>
+                                <p><strong>Balance:</strong> ${student.balance}</p>
+                            </div>
+                            <div class="payment-form">
+                                <h4>Update Payment</h4>
+                                <input type="number" id="amount-${student.student_number}" placeholder="Amount">
+                                <button onclick="updatePayment('${student.student_number}')">Update Payment</button>
+                            </div>
+                            <div class="docket-controls">
+                                <h4>Docket Status</h4>
+                                <p>Status: <span class="status ${isBlocked ? 'status-blocked' : 'status-active'}">${isBlocked ? 'BLOCKED' : 'Active'}</span></p>
+                                ${isBlocked ? 
+                                    `<button class="unblock-btn" onclick="unblockStudent('${student.student_number}')">Unblock Student</button>` : 
+                                    `<button class="block-btn" onclick="blockStudent('${student.student_number}')">Block Student</button>`
+                                }
+                            </div>
+                        `;
+                        resultsContainer.appendChild(studentCard);
+                    });
                 } else {
                     resultsContainer.innerHTML = `<p>Error: ${json.error || "Unknown error"}</p>`;
                 }
@@ -214,7 +215,7 @@
             }
         };
 
-        async function updatePayment(student_number) {
+        async function updatePayment(student_number) { 
             const amount = document.getElementById(`amount-${student_number}`).value;
             if (!amount) {
                 alert("Please enter an amount.");
@@ -248,28 +249,71 @@
             }
         }
 
-        // Verify docket tab script
+        async function saveExamSettings() {
+            const checkedRadio = document.querySelector('input[name="active_exam"]:checked');
+            if (!checkedRadio) {
+                alert("Please select an exam type.");
+                return;
+            }
+            const activeExam = checkedRadio.value;
+            try {
+                const res = await fetch('/admin/settings', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ active_exam: activeExam })
+                });
+                if (res.ok) {
+                    alert("Settings saved successfully!");
+                } else {
+                    const json = await res.json();
+                    alert("Error saving settings: " + (json.error || "Unknown error"));
+                }
+            } catch (err) {
+                alert("An error occurred while saving settings.");
+            }
+        }
+
+        async function blockStudent(studentNumber) {
+            if (!confirm(`Are you sure you want to block all dockets for ${studentNumber}?`)) return;
+            try {
+                const res = await fetch(`/admin/students/${studentNumber}/block`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    alert("Student blocked successfully.");
+                    await loadAdminControlsData(); // Refresh blocklist
+                    document.getElementById("searchBtn").click(); // Refresh search results
+                } else { alert("Failed to block student."); }
+            } catch (err) { alert("An error occurred."); }
+        }
+
+        async function unblockStudent(studentNumber) {
+            if (!confirm(`Are you sure you want to unblock all dockets for ${studentNumber}?`)) return;
+            try {
+                const res = await fetch(`/admin/students/${studentNumber}/unblock`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    alert("Student unblocked successfully.");
+                    await loadAdminControlsData(); // Refresh blocklist
+                    document.getElementById("searchBtn").click(); // Refresh search results
+                } else { alert("Failed to unblock student."); }
+            } catch (err) { alert("An error occurred."); }
+        }
+
         const resultContainer = document.getElementById("result-container");
         let html5QrcodeScanner;
+        let isScanProcessing = false;
 
         async function onScanSuccess(decodedText, decodedResult) {
-            console.log(`Code matched = ${decodedText}`, decodedResult);
-            stopScanner();
-            resultContainer.innerHTML = "<p>Verifying...</p>";
+            if (isScanProcessing) return;
+            isScanProcessing = true;
 
+            resultContainer.innerHTML = "<p>Verifying...</p>";
             try {
                 const res = await fetch("/verification/verify", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({ qr_data: decodedText })
                 });
-
                 const json = await res.json();
                 let resultHtml = "";
-
                 if (json.ok) {
                     const student = json.student;
                     resultHtml = `
@@ -292,56 +336,45 @@
                     `;
                 }
                 resultContainer.innerHTML = resultHtml;
-
             } catch (err) {
-                console.error("Verification failed:", err);
                 resultContainer.innerHTML = '<div class="result-card result-invalid"><h3>An unexpected error occurred.</h3></div>';
+            } finally {
+                // Re-enable scanning after a 7-second delay
+                setTimeout(() => {
+                    isScanProcessing = false;
+                    resultContainer.innerHTML = "<p>Waiting for scan...</p>"; // Clear previous result
+                }, 7000); // 7 seconds
             }
         }
 
-        function onScanFailure(error) {
-            // console.warn(`Code scan error = ${error}`);
-        }
+        function onScanFailure(error) { }
 
         function startScanner() {
-            if (!html5QrcodeScanner) {
-                html5QrcodeScanner = new Html5QrcodeScanner(
-                    "reader", 
-                    { fps: 10, qrbox: {width: 250, height: 250} },
-                    false);
+            document.getElementById('reader').style.display = 'block'; // Show the reader
+            if (!html5QrcodeScanner || !html5QrcodeScanner.isScanning) {
+                html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+                html5QrcodeScanner.render(onScanSuccess, onScanFailure);
             }
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
 
         function stopScanner() {
-            if (html5QrcodeScanner) {
+            if (html5QrcodeScanner && html5QrcodeScanner.isScanning) {
                 try {
                     html5QrcodeScanner.clear();
                 } catch (e) {
                     console.error("Failed to clear scanner:", e);
                 }
             }
+            document.getElementById('reader').style.display = 'none'; // Hide the reader
         }
 
-        // Logout script
-        document.getElementById("logoutBtn").onclick = async () => {
-            try {
-                await fetch("/logout", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    credentials: "include"
-                });
-            } catch (err) {
-                console.error("Error during logout:", err);
-            } finally {
-                localStorage.removeItem("token");
-                localStorage.removeItem("role");
-                window.location.href = "admin-login.html";
-            }
+        document.getElementById("logoutBtn").onclick = () => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("role");
+            window.location.href = "admin-login.html";
         };
+
+        document.addEventListener('DOMContentLoaded', loadAdminControlsData);
     </script>
 </body>
 </html>

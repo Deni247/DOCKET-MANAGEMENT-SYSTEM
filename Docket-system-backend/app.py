@@ -187,10 +187,12 @@ def serve_static_files(path):
 # -------------------- Register Blueprints --------------------
 from routes.dockets import dockets_bp
 from routes.verification import verification_bp
+from routes.admin_controls import admin_controls_bp
 app.register_blueprint(dockets_bp, url_prefix="/dockets")
 app.register_blueprint(verification_bp, url_prefix="/verification")
+app.register_blueprint(admin_controls_bp, url_prefix="/admin")
 
 
 # -------------------- Run Server --------------------
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, host='127.0.0.1')

@@ -4,6 +4,7 @@ import os
 import hashlib
 from dotenv import load_dotenv
 from utils.auth import jwt_required
+from routes.dockets import read_json_file, BLOCKLIST_FILE
 
 # Load environment variables
 load_dotenv()
@@ -39,10 +40,16 @@ def verify_docket():
             raise ValueError("Invalid QR data format")
         student_number, exam_type, token_value = parts
 
+        # --- Check if student is blocked ---
+        blocklist = read_json_file(BLOCKLIST_FILE)
+        if student_number in blocklist:
+            raise ValueError("Student is blocked. Please refer to the Retentions Office.")
+
         # --- 2. Connect to DB and Hash Token ---
         conn = get_db_connection()
         cur = conn.cursor(dictionary=True)
         token_hash = hashlib.sha256(token_value.encode()).hexdigest()
+
 
         # --- 3. Find Active Token and Lock Row ---
         conn.start_transaction()
@@ -51,26 +58,26 @@ def verify_docket():
             FROM docket_tokens dt
             JOIN dockets d ON dt.docket_id = d.docket_id
             JOIN students s ON d.student_id = s.id
-            WHERE dt.token_hash = %s AND s.student_number = %s AND d.exam_type = %s AND dt.status = 'active'
+            WHERE dt.token_hash = %s
+            AND s.student_number = %s
+            AND d.exam_type = %s
+            AND dt.status = 'active'
             LIMIT 1 FOR UPDATE
         """, (token_hash, student_number, exam_type))
         token_row = cur.fetchone()
 
         # --- 4. Handle Verification Logic ---
         if not token_row:
-            # If no active token, it's invalid or already used. Log the failed attempt.
-            cur.execute("""
-                INSERT INTO verifications (docket_id, scanned_by, scan_result, remarks)
-                VALUES (%s, %s, %s, %s)
-            """, (None, admin_id, 'invalid', f"Attempted scan with invalid data: {qr_data}"))
-            conn.commit()
+            # If no active token, it's invalid or already used. Simply return an error.
+            # Do not attempt to log this, as we don't have a valid docket_id, which would cause an IntegrityError.
+            conn.rollback() # End the transaction
             cur.close()
             conn.close()
             return jsonify({"ok": False, "error": "Docket is invalid, has already been used, or does not exist."}), 404
 
         # --- 5. If Valid: Update Token, Log Verification, and Fetch Details ---
         docket_id = token_row["docket_id"]
-        
+
         # Update token status to 'used'
         cur.execute("UPDATE docket_tokens SET status = 'used', used_at = NOW() WHERE token_id = %s", (token_row["token_id"],))
 
@@ -101,14 +108,17 @@ def verify_docket():
         })
 
     except mysql.connector.Error as err:
-        if conn: conn.rollback()
-        # In a real app, you would log this error
+        if conn:
+            conn.rollback()
+        print(f"Database error: {err}") # Added for debugging
         return jsonify({"ok": False, "error": "A database error occurred."}), 500
     except ValueError as e:
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify({"ok": False, "error": str(e)}), 400
     except Exception as e:
-        if conn: conn.rollback()
+        if conn:
+            conn.rollback()
         return jsonify({"ok": False, "error": f"An unexpected error occurred: {e}"}), 500
     finally:
         if conn and conn.is_connected():

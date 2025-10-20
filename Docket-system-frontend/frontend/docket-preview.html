@@ -48,27 +48,16 @@
 
 <script>
     function downloadPdf() {
-        const params = new URLSearchParams(window.location.search);
-        const student_id = params.get('student_id');
-        const exam_type = params.get('exam_type');
+        const iframe = document.getElementById('pdf-iframe');
+        const pdfUrl = iframe.src;
 
-        if (!student_id || !exam_type) {
-            alert("Cannot download docket: Missing student ID or exam type.");
-            return;
+        if (pdfUrl) {
+            // Open the existing PDF preview URL in a new tab.
+            // The user can then save/download it using their browser's PDF viewer controls.
+            window.open(pdfUrl, '_blank');
+        } else {
+            alert("PDF is not available for download yet. Please wait for it to load.");
         }
-
-        // Construct the URL for downloading (without preview=true)
-        const downloadUrl = `/dockets/generate?student_id=${student_id}&exam_type=${exam_type}`;
-
-        // Create a temporary link and click it to trigger the download.
-        // The 'download' attribute forces download behavior, and the browser will use the filename from the server.
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = downloadUrl;
-        a.download = ''; // The presence of this attribute is what matters.
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
     }
 
     // Load the PDF into the iframe for preview

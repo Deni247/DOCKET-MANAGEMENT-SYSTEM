@@ -16,3 +16,17 @@
 2025-10-11 10:31:52,076 -  * Detected change in 'c:\\Users\\MakeniCentralSouth\\OneDrive\\Desktop\\DOCKET-MANAGMENT-SYSTEM\\Docket-system-backend\\routes\\dockets.py', reloading
 2025-10-11 10:31:52,193 -  * Restarting with stat
 2025-10-11 10:33:22,539 -  * Restarting with stat
+VERIFICATION DB CRASH | 2025-10-20 11:43:51.538585 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:53.840190 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:53.978513 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.143553 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.241459 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.338290 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.458625 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.597723 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.724533 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.869595 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:54.991958 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:55.120506 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:55.520604 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
+VERIFICATION DB CRASH | 2025-10-20 11:43:55.522856 | IntegrityError: 1048 (23000): Column 'docket_id' cannot be null
