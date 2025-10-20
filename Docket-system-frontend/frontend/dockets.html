@@ -9,6 +9,60 @@
           window.location.href = 'students-portal.html';
       }
   </script>
+  <style>
+    .dockets-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5rem;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .dockets-table th, .dockets-table td {
+        padding: 15px 20px;
+        text-align: left;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .dockets-table th {
+        background-color: #002366; /* Cavendish Blue */
+        color: #fff;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .dockets-table tr:last-child td {
+        border-bottom: none;
+    }
+    .dockets-table tr:hover {
+        background-color: #f7faff;
+    }
+    .status-eligible {
+        color: #28a745;
+        font-weight: 700;
+    }
+    .status-ineligible {
+        color: #dc3545;
+        font-weight: 700;
+    }
+    .action-btn {
+        background-color: #FFD700; /* Cavendish Gold */
+        color: #002366;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
+    }
+    .action-btn:hover {
+        background-color: #e6c300;
+    }
+    .action-text {
+        color: #721c24;
+        font-style: italic;
+    }
+  </style>
 </head>
 <body>
   <div class="sidebar">
@@ -26,6 +80,8 @@
 
   <div class="main">
     <h2>Your Exam Dockets</h2>
+    <p>Downlaod your Docket For Upcoming or on going exams below.</p>
+    <p>If you are not able to download your docket kindly visit the Rententions office.</p>
     <div id="docketSection">Loading eligibility...</div>
   </div>
 
@@ -48,14 +104,22 @@ async function loadDockets() {
       return;
     }
 
-    let html = "<table border='1' cellpadding='10'><tr><th>Exam Type</th><th>Status</th><th>Action</th></tr>";
+    let html = "<table class='dockets-table'><thead><tr><th>Exam Type</th><th>Status</th><th>Action</th></tr></thead><tbody>";
     json.eligibility.forEach(e => {
-      const btn = e.eligible
-        ? `<button onclick="previewDocket('${e.exam_type}')">Preview & Download</button>`
-        : `<span style='color:red'>Please visit Retentions Office</span>`;
-      html += `<tr><td>${e.exam_type.toUpperCase()}</td><td>${e.eligible ? "Eligible" : "Not Eligible"}</td><td>${btn}</td></tr>`;
+      const isEligible = e.eligible;
+      const statusClass = isEligible ? 'status-eligible' : 'status-ineligible';
+      const statusText = isEligible ? 'Eligible' : 'Not Eligible';
+      const actionHtml = isEligible
+        ? `<button class='action-btn' onclick="previewDocket('${e.exam_type}')">Preview & Download</button>`
+        : `<span class='action-text'>Please visit Retentions Office</span>`;
+
+      html += `<tr>
+                  <td>${e.exam_type.toUpperCase()}</td>
+                  <td class='${statusClass}'>${statusText}</td>
+                  <td>${actionHtml}</td>
+               </tr>`;
     });
-    html += "</table>";
+    html += "</tbody></table>";
     document.getElementById("docketSection").innerHTML = html;
   } catch (error) {
     console.error('Error fetching dockets:', error);
@@ -79,4 +143,3 @@ loadDockets();
 </script>
 </body>
 </html>
-
