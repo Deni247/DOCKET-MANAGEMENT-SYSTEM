@@ -1,7 +1,9 @@
 Flask
+Flask-Cors
 mysql-connector-python
 python-dotenv
 passlib
 PyJWT
-flask-cors
 gunicorn
+qrcode
+reportlab

@@ -124,3 +124,62 @@ def verify_docket():
         if conn and conn.is_connected():
             cur.close()
             conn.close()
+
+@verification_bp.route("/sync", methods=["POST"])
+@jwt_required(role="admin")
+def sync_verifications():
+    data = request.json
+    pending = data.get("pending_verifications", [])
+    admin_id = request.user['sub']
+
+    if not pending:
+        return jsonify({"ok": True, "message": "No items to sync."})
+
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    try:
+        conn.start_transaction()
+        for item in pending:
+            qr_data = item.get("qr_data")
+            if not qr_data:
+                continue
+
+            parts = qr_data.split('|')
+            if len(parts) != 3:
+                continue
+            student_number, exam_type, token_value = parts
+
+            token_hash = hashlib.sha256(token_value.encode()).hexdigest()
+
+            cur.execute("""
+                SELECT dt.token_id, dt.docket_id
+                FROM docket_tokens dt
+                JOIN dockets d ON dt.docket_id = d.docket_id
+                JOIN students s ON d.student_id = s.id
+                WHERE dt.token_hash = %s AND s.student_number = %s AND d.exam_type = %s AND dt.status = 'active'
+                LIMIT 1 FOR UPDATE
+            """, (token_hash, student_number, exam_type))
+            token_row = cur.fetchone()
+
+            if token_row:
+                cur.execute("UPDATE docket_tokens SET status = 'used', used_at = NOW() WHERE token_id = %s", (token_row["token_id"],))
+                cur.execute("""
+                    INSERT INTO verifications (docket_id, scanned_by, scan_result, remarks)
+                    VALUES (%s, %s, %s, %s)
+                """, (token_row["docket_id"], admin_id, 'valid', 'Synced from offline verification'))
+
+        conn.commit()
+        return jsonify({"ok": True, "message": "Sync successful"})
+
+    except mysql.connector.Error as err:
+        if conn:
+            conn.rollback()
+        return jsonify({"ok": False, "error": "Database error during sync."}), 500
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"ok": False, "error": f"An unexpected error occurred during sync: {e}"}), 500
+    finally:
+        if conn and conn.is_connected():
+            cur.close()
+            conn.close()

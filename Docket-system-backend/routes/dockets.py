@@ -498,3 +498,33 @@ def update_payment():
         conn.close()
 
     return jsonify({"ok": True})
+
+@dockets_bp.route("/sync/students", methods=["GET"])
+@jwt_required(role="admin")
+def sync_students():
+    """Endpoint to get all student details for offline caching."""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("""
+        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name
+        FROM students s
+        JOIN programmes p ON s.programme_id = p.programme_id
+        ORDER BY s.student_number
+    """)
+    students = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "students": students})
+
+@dockets_bp.route("/sync/tokens", methods=["GET"])
+@jwt_required(role="admin")
+def sync_tokens():
+    """Endpoint to get all active docket tokens for offline verification."""
+    conn = get_db_connection()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT token_hash FROM docket_tokens WHERE status = 'active'")
+    # The fetchall() returns a list of dicts, e.g., [{'token_hash': '...'}]. We need a simple list.
+    tokens = [row['token_hash'] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify({"ok": True, "tokens": tokens})

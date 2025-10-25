@@ -1,0 +1,20 @@
+{
+  "name": "Docket Admin Verification",
+  "short_name": "Docket Admin",
+  "start_url": "/admin-dashboard.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#002366",
+  "icons": [
+    {
+      "src": "cavendish-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "cavendish-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

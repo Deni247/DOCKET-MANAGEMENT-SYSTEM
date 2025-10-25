@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="dashboard.css">
     <title>Admin Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
     <script>
         if (localStorage.getItem('role') !== 'admin') {
             window.location.href = 'admin-login.html';
@@ -119,10 +120,50 @@
     </main>
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="db.js"></script>
 
     <script>
         const token = localStorage.getItem("token");
         let blockedStudentsList = [];
+
+        async function syncDataForOfflineUse() {
+            console.log("Starting offline data synchronization...");
+            try {
+                const headers = { "Authorization": `Bearer ${token}` };
+                
+                // Sync students
+                const studentsRes = await fetch('/dockets/sync/students', { headers });
+                if (studentsRes.ok) {
+                    const studentsData = await studentsRes.json();
+                    await clearAndAddData('students', studentsData.students);
+                    console.log('Successfully synced students to IndexedDB.');
+                }
+
+                // Sync active docket tokens
+                const tokensRes = await fetch('/dockets/sync/tokens', { headers });
+                if (tokensRes.ok) {
+                    const tokensData = await tokensRes.json();
+                    // We need to store objects in IndexedDB, so we map the array of strings
+                    const tokenObjects = tokensData.tokens.map(hash => ({ token_hash: hash }));
+                    await clearAndAddData('active_dockets', tokenObjects);
+                    console.log('Successfully synced active dockets to IndexedDB.');
+                }
+
+                // Sync blocked students
+                const blockedRes = await fetch('/admin/blocked-students', { headers });
+                if (blockedRes.ok) {
+                    const blockedData = await blockedRes.json();
+                    // We need to store objects in IndexedDB
+                    const blockedObjects = blockedData.blocked_students.map(num => ({ student_number: num }));
+                    await clearAndAddData('blocked_students', blockedObjects);
+                    console.log('Successfully synced blocked students to IndexedDB.');
+                }
+                alert('Offline data synced successfully!');
+            } catch (err) {
+                console.error("Offline sync failed:", err);
+                alert("Could not sync offline data. Verification will only work online.");
+            }
+        }
 
         async function loadAdminControlsData() {
             try {
@@ -301,49 +342,126 @@
         let html5QrcodeScanner;
         let isScanProcessing = false;
 
+        function addPendingVerification(qrData) {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onsuccess = event => {
+                const db = event.target.result;
+                const transaction = db.transaction(['pending_verifications'], 'readwrite');
+                const store = transaction.objectStore('pending_verifications');
+                store.add({ qr_data: qrData, timestamp: new Date().toISOString() });
+            };
+        }
+
         async function onScanSuccess(decodedText, decodedResult) {
             if (isScanProcessing) return;
             isScanProcessing = true;
-
             resultContainer.innerHTML = "<p>Verifying...</p>";
+
+            const isOnline = navigator.onLine;
+
+            try {
+                // OFFLINE-FIRST LOGIC
+                const db = await openDB();
+                const parts = decodedText.split('|');
+                if (parts.length !== 3) throw new Error("Invalid QR format");
+                const [student_number, exam_type, token_value] = parts;
+                const token_hash = await sha256(token_value);
+
+                const blockedTx = db.transaction(['blocked_students'], 'readonly');
+                const blockedStore = blockedTx.objectStore('blocked_students');
+                const blockedReq = blockedStore.get(student_number);
+
+                blockedReq.onsuccess = async () => {
+                    if (blockedReq.result) {
+                        displayResult(false, { error: "Student is blocked." });
+                        return;
+                    }
+
+                    const docketTx = db.transaction(['active_dockets'], 'readonly');
+                    const docketStore = docketTx.objectStore('active_dockets');
+                    const docketReq = docketStore.get(token_hash);
+
+                    docketReq.onsuccess = async () => {
+                        if (docketReq.result) {
+                            // Local verification success
+                            const studentTx = db.transaction(['students'], 'readonly');
+                            const studentStore = studentTx.objectStore('students');
+                            const studentReq = studentStore.get(student_number);
+
+                            studentReq.onsuccess = () => {
+                                displayResult(true, { student: studentReq.result, exam_type: exam_type });
+                                // Remove from local active dockets and add to pending sync
+                                const delTx = db.transaction(['active_dockets'], 'readwrite');
+                                delTx.objectStore('active_dockets').delete(token_hash);
+                                addPendingVerification(decodedText);
+                                navigator.serviceWorker.ready.then(swRegistration => swRegistration.sync.register('sync-pending-verifications'));
+                            };
+                        } else {
+                            // Not found locally, fallback to online if possible
+                            if (isOnline) {
+                                fetchOnline(decodedText);
+                            } else {
+                                displayResult(false, { error: "Docket not found in offline data." });
+                            }
+                        }
+                    };
+                };
+
+            } catch (err) {
+                if (isOnline) fetchOnline(decodedText); // Fallback on any error if online
+                else displayResult(false, { error: "Verification failed offline." });
+            }
+        }
+
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        function displayResult(ok, data) {
+            let resultHtml = "";
+            if (ok) {
+                const student = data.student;
+                resultHtml = `
+                    <div class="result-card result-valid">
+                        <h2>DOCKET VALID</h2>
+                        <div class="student-details">
+                            <p><strong>Name:</strong> ${student.first_name} ${student.last_name}</p>
+                            <p><strong>Student Number:</strong> ${student.student_number}</p>
+                            <p><strong>Programme:</strong> ${student.programme_name}</p>
+                            <p><strong>Exam Type:</strong> ${data.exam_type.toUpperCase()}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultHtml = `
+                    <div class="result-card result-invalid">
+                        <h2>DOCKET INVALID</h2>
+                        <p>${data.error || "Verification failed."}</p>
+                    </div>
+                `;
+            }
+            resultContainer.innerHTML = resultHtml;
+            setTimeout(() => {
+                isScanProcessing = false;
+                resultContainer.innerHTML = "<p>Waiting for scan...</p>";
+            }, 15000);
+        }
+
+        async function fetchOnline(qrData) {
             try {
                 const res = await fetch("/verification/verify", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({ qr_data: decodedText })
+                    body: JSON.stringify({ qr_data: qrData })
                 });
                 const json = await res.json();
-                let resultHtml = "";
-                if (json.ok) {
-                    const student = json.student;
-                    resultHtml = `
-                        <div class="result-card result-valid">
-                            <h2>DOCKET VALID</h2>
-                            <div class="student-details">
-                                <p><strong>Name:</strong> ${student.first_name} ${student.last_name}</p>
-                                <p><strong>Student Number:</strong> ${student.student_number}</p>
-                                <p><strong>Programme:</strong> ${student.programme_name}</p>
-                                <p><strong>Exam Type:</strong> ${json.exam_type.toUpperCase()}</p>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    resultHtml = `
-                        <div class="result-card result-invalid">
-                            <h2>DOCKET INVALID</h2>
-                            <p>${json.error || "Verification failed."}</p>
-                        </div>
-                    `;
-                }
-                resultContainer.innerHTML = resultHtml;
+                displayResult(json.ok, json);
             } catch (err) {
-                resultContainer.innerHTML = '<div class="result-card result-invalid"><h3>An unexpected error occurred.</h3></div>';
-            } finally {
-                // Re-enable scanning after a 15-second delay
-                setTimeout(() => {
-                    isScanProcessing = false;
-                    resultContainer.innerHTML = "<p>Waiting for scan...</p>"; // Clear previous result
-                }, 15000); // 15 seconds
+                displayResult(false, { error: "Online verification failed." });
             }
         }
 
@@ -374,7 +492,21 @@
             window.location.href = "admin-login.html";
         };
 
-        document.addEventListener('DOMContentLoaded', loadAdminControlsData);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminControlsData();
+            syncDataForOfflineUse();
+        });
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
     </script>
 </body>
 </html>
