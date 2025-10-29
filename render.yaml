@@ -27,6 +27,8 @@ services:
           property: database
       - key: JWT_SECRET
         sync: false
+      - key: PYTHONPATH
+        value: .
 
 databases:
   - name: docket-db
