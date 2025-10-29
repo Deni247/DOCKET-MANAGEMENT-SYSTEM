@@ -1,0 +1,34 @@
+# This file is used to configure the deployment of the Docket Management System on Render.
+# See https://render.com/docs/yaml-spec for more details.
+
+services:
+  - type: web
+    name: docket-management-system
+    env: python
+    plan: free # optional
+    buildCommand: "pip install -r Docket-system-backend/requirements.txt"
+    startCommand: "gunicorn --workers 4 --bind 0.0.0.0:$PORT Docket-system-backend.app:app"
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: docket-db
+          property: host
+      - key: DB_USER
+        fromDatabase:
+          name: docket-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: docket-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: docket-db
+          property: database
+      - key: JWT_SECRET
+        sync: false
+
+databases:
+  - name: docket-db
+    databaseName: docket_system
+    plan: free # optional
