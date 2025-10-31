@@ -7,6 +7,10 @@ import mysql.connector
 from dotenv import load_dotenv
 import jwt
 from passlib.hash import bcrypt
+import sys
+
+# Add the backend directory to the Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Load environment variables
 load_dotenv()
@@ -182,6 +186,12 @@ def serve_static_files(path):
         return send_from_directory(app.static_folder, path)
     else:
         return jsonify({"error": "File not found"}), 404
+
+
+# -------------------- Health Check --------------------
+@app.route("/health")
+def health_check():
+    return "OK", 200
 
 
 # -------------------- Register Blueprints --------------------

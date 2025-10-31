@@ -1,0 +1,1 @@
+web: gunicorn --workers 4 Docket-system-backend.app:app
