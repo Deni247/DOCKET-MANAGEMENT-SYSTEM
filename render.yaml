@@ -4,7 +4,7 @@ services:
   - type: web
     name: docket-management-system
     env: python
-    plan: free # optional
+    plan: free
     buildCommand: "pip install -r Docket-system-backend/requirements.txt"
     startCommand: "gunicorn --workers 4 --bind 0.0.0.0:$PORT Docket-system-backend.app:app"
     envVars:
@@ -16,7 +16,7 @@ services:
         sync: false
       - key: DATABASE
         sync: false
-      - key: CA
+      - key: CA_PATH
         sync: false
       - key: DB_PLATFORM
         value: TIDB
