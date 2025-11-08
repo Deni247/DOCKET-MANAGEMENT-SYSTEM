@@ -38,14 +38,6 @@ JWT_EXP_SECONDS = int(os.getenv("JWT_EXP_SECONDS", 60 * 60 * 8))  # 8 hours
 def get_db_connection():
     db_platform = os.getenv("DB_PLATFORM")
 
-    # Log environment variables for debugging
-    app.logger.error(f"DB_PLATFORM: {db_platform}")
-    app.logger.error(f"HOST: {os.getenv('HOST')}")
-    app.logger.error(f"PORT: {os.getenv('PORT')}")
-    app.logger.error(f"USERNAME: {os.getenv('USERNAME')}")
-    app.logger.error(f"DATABASE: {os.getenv('DATABASE')}")
-    app.logger.error(f"CA: {os.getenv('CA')}")
-
     if db_platform == 'XAMPP':
         # Configuration for local XAMPP (MariaDB) without SSL
         return mysql.connector.connect(
