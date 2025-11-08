@@ -7,4 +7,4 @@ PyJWT
 gunicorn
 qrcode
 reportlab
-bcrypt
+bcrypt==3.2.0
