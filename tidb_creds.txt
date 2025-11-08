@@ -1,0 +1,6 @@
+HOST: gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+PORT: 4000
+USERNAME: 2wGfoFiLFYb2YT7.root
+PASSWORD: kHwx6CzeHnQmSWNV
+DATABASE: docket_system2
+CA: Docket-system-backend\isrgrootx1.pem
