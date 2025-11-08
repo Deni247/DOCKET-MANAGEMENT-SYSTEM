@@ -7,3 +7,4 @@ PyJWT
 gunicorn
 qrcode
 reportlab
+bcrypt
