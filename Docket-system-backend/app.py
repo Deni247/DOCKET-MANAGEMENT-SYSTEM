@@ -39,12 +39,12 @@ def get_db_connection():
     db_platform = os.getenv("DB_PLATFORM")
 
     # Log environment variables for debugging
-    app.logger.info(f"DB_PLATFORM: {db_platform}")
-    app.logger.info(f"HOST: {os.getenv('HOST')}")
-    app.logger.info(f"PORT: {os.getenv('PORT')}")
-    app.logger.info(f"USERNAME: {os.getenv('USERNAME')}")
-    app.logger.info(f"DATABASE: {os.getenv('DATABASE')}")
-    app.logger.info(f"CA: {os.getenv('CA')}")
+    app.logger.error(f"DB_PLATFORM: {db_platform}")
+    app.logger.error(f"HOST: {os.getenv('HOST')}")
+    app.logger.error(f"PORT: {os.getenv('PORT')}")
+    app.logger.error(f"USERNAME: {os.getenv('USERNAME')}")
+    app.logger.error(f"DATABASE: {os.getenv('DATABASE')}")
+    app.logger.error(f"CA: {os.getenv('CA')}")
 
     if db_platform == 'XAMPP':
         # Configuration for local XAMPP (MariaDB) without SSL
