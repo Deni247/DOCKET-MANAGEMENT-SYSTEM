@@ -16,6 +16,8 @@ import secrets
 from utils.auth import jwt_required
 
 
+
+
 # Load environment variables
 load_dotenv()
 
@@ -24,29 +26,12 @@ dockets_bp = Blueprint("dockets", __name__)
 
 # ---------------- Helper: Database Connection ----------------
 def get_db_connection():
-    db_platform = os.getenv("DB_PLATFORM")
-
-    if db_platform == 'XAMPP':
-        # Configuration for local XAMPP (MariaDB) without SSL
-        return mysql.connector.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            database=os.getenv("DB_NAME", "docket_system2"),
-            autocommit=False,
-            ssl_disabled=True
-        )
-    else:
-        # Default configuration for TiDB with SSL
-        return mysql.connector.connect(
-            host=os.getenv("HOST"),
-            user=os.getenv("USERNAME"),
-            password=os.getenv("PASSWORD"),
-            database=os.getenv("DATABASE"),
-            autocommit=False,
-            ssl_ca=os.getenv("CA"),
-            ssl_verify_cert=True if os.getenv("CA") else False
-        )
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        user=os.getenv("DB_USER", "root"),
+        password=os.getenv("DB_PASSWORD", ""),
+        database=os.getenv("DB_NAME", "docket_system"),
+    )
 
 # ---------------- Helper: Generate PDF Docket ----------------
 def generate_docket_pdf(student, courses, exam_type, qr_data):
@@ -324,7 +309,7 @@ def generate_docket():
 
     # ---------------- Fetch student info ----------------
     cur.execute('''
-        SELECT s.id, s.first_name, s.last_name, s.student_number, s.programme_id, p.programme_name, s.current_year, s.current_semester
+        SELECT s.id, s.first_name, s.last_name, s.student_number, s.programme_id, p.programme_name
         FROM students s
         JOIN programmes p ON s.programme_id = p.programme_id
         WHERE s.id = %s
@@ -374,14 +359,12 @@ def generate_docket():
 
         # ---------------- Save to dockets table ----------------
         cur.execute('''
-            INSERT INTO dockets (student_id, programme_id, exam_type, year_of_study, semester, qr_code, issued_at, status, printed_count, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+            INSERT INTO dockets (student_id, programme_id, exam_type, qr_code, issued_at, status, printed_count, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
         ''', (
             student['id'],
             student['programme_id'],
             exam_type,
-            student['current_year'],
-            student['current_semester'],
             qr_data,
             datetime.now(),
             "issued",
@@ -444,46 +427,23 @@ def get_payments():
 @dockets_bp.route("/students/search", methods=["GET"])
 @jwt_required(role="admin")
 def search_students():
-    query = request.args.get("q", "").strip()
+    query = request.args.get("q", "")
     if not query:
         return jsonify({"ok": True, "students": []})
 
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
 
-    # Heuristic: If the query consists only of digits, it's a student number search.
-    if query.isdigit():
-        # Perform an exact match for student number, limit to 1 to handle potential data duplication
-        sql = """
-            SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
-                    sb.total_fee, sb.amount_paid, sb.balance
-            FROM students s
-            JOIN programmes p ON s.programme_id = p.programme_id
-            LEFT JOIN student_balances sb ON s.id = sb.student_id 
-                AND s.current_year = sb.year_of_study 
-                AND s.current_semester = sb.semester
-            WHERE s.student_number = %s
-            ORDER BY s.last_name, s.first_name
-            LIMIT 1
-        """
-        params = (query,)
-    else:
-        # Perform a LIKE search for names or partial student numbers
-        search_query = f"%{query}%"
-        sql = """
-            SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
-                    sb.total_fee, sb.amount_paid, sb.balance
-            FROM students s
-            JOIN programmes p ON s.programme_id = p.programme_id
-            LEFT JOIN student_balances sb ON s.id = sb.student_id 
-                AND s.current_year = sb.year_of_study 
-                AND s.current_semester = sb.semester
-            WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
-            ORDER BY s.last_name, s.first_name
-        """
-        params = (search_query, search_query, search_query)
-
-    cur.execute(sql, params)
+    search_query = f"%{query}%"
+    cur.execute("""
+        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, sb.total_fee, sb.amount_paid, sb.balance
+        FROM students s
+        JOIN programmes p ON s.programme_id = p.programme_id
+        LEFT JOIN student_balances sb ON s.id = sb.student_id
+        WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
+        GROUP BY s.id
+        ORDER BY s.last_name, s.first_name
+    """, (search_query, search_query, search_query))
     students = cur.fetchall()
 
     cur.close()
@@ -497,90 +457,47 @@ def update_payment():
     data = request.json
     student_number = data.get("student_number")
     amount = data.get("amount")
-    db_platform = os.getenv("DB_PLATFORM")
 
     if not student_number or not amount:
-        return jsonify({"ok": False, "error": "Missing student_number or amount"}), 400
+        return jsonify({"ok": False, "error": "Missing parameters"}), 400
 
     try:
         amount = float(amount)
     except (ValueError, TypeError):
-        return jsonify({"ok": False, "error": "Invalid amount format"}), 400
+        return jsonify({"ok": False, "error": "Invalid amount"}), 400
 
     conn = get_db_connection()
-    cur = conn.cursor(dictionary=True, buffered=True)
+    cur = conn.cursor(dictionary=True)
 
     try:
         conn.start_transaction()
 
-        cur.execute("SELECT id, programme_id, current_year, current_semester FROM students WHERE student_number = %s", (student_number,))
+        # Get student_id and programme_id from students table
+        cur.execute("SELECT id, programme_id FROM students WHERE student_number = %s", (student_number,))
         student = cur.fetchone()
         if not student:
-            raise Exception("Student not found.")
-
+            cur.close()
+            conn.close()
+            return jsonify({"ok": False, "error": "Student not found"}), 404
+        
         student_id = student["id"]
         programme_id = student["programme_id"]
 
+        # Insert into payments table
         cur.execute("""
             INSERT INTO payments (student_id, programme_id, amount, payment_type, payment_date, payment_status)
             VALUES (%s, %s, %s, %s, NOW(), %s)
         """, (student_id, programme_id, amount, "General", "completed"))
 
-        # If not on XAMPP, perform manual updates. Otherwise, triggers will handle it.
-        if db_platform != 'XAMPP':
-            current_year = student["current_year"]
-            current_semester = student["current_semester"]
-
-            cur.execute("""
-                UPDATE student_balances SET amount_paid = amount_paid + %s, last_updated = NOW()
-                WHERE student_id = %s AND programme_id = %s AND year_of_study = %s AND semester = %s
-            """, (amount, student_id, programme_id, current_year, current_semester))
-
-            if cur.rowcount == 0:
-                raise Exception("No matching student balance record found to update.")
-
-            cur.execute("""
-                SELECT amount_paid, total_fee FROM student_balances
-                WHERE student_id = %s AND programme_id = %s AND year_of_study = %s AND semester = %s
-            """, (student_id, programme_id, current_year, current_semester))
-            balance_data = cur.fetchone()
-            if not balance_data:
-                raise Exception("Student balance record not found after update.")
-
-            amount_paid = balance_data["amount_paid"]
-            total_fee = balance_data["total_fee"]
-
-            cur.execute("SELECT exam_type, required_percentage FROM fee_schedule")
-            rules = cur.fetchall()
-            
-            ca1_req = next((r['required_percentage'] for r in rules if r['exam_type'] == 'CA1'), 0)
-            ca2_req = next((r['required_percentage'] for r in rules if r['exam_type'] == 'CA2'), 0)
-            exam_req = next((r['required_percentage'] for r in rules if r['exam_type'] == 'EXAM'), 0)
-
-            percent_paid = (amount_paid / total_fee) * 100 if total_fee > 0 else 0
-
-            ca1_status = 'eligible' if percent_paid >= ca1_req else 'blocked'
-            ca2_status = 'eligible' if percent_paid >= ca2_req else 'blocked'
-            exam_status = 'eligible' if percent_paid >= exam_req else 'blocked'
-
-            cur.execute("""
-                UPDATE clearances SET ca1_status = %s, ca2_status = %s, exam_status = %s, last_checked = NOW()
-                WHERE student_id = %s AND programme_id = %s AND year_of_study = %s AND semester = %s
-            """, (ca1_status, ca2_status, exam_status, student_id, programme_id, current_year, current_semester))
-
         conn.commit()
-        
-        return jsonify({"ok": True, "message": "Payment recorded successfully."}), 200
-
-    except mysql.connector.Error as err:
-        conn.rollback()
-        return jsonify({"ok": False, "error": f"Database error: {err}"}), 500
     except Exception as e:
         conn.rollback()
-        return jsonify({"ok": False, "error": f"An unexpected error occurred: {e}"}), 500
+        return jsonify({"ok": False, "error": f"Failed to update payment: {e}"}), 500
     finally:
         cur.close()
         conn.close()
+
+    return jsonify({"ok": True})
 
 @dockets_bp.route("/sync/students", methods=["GET"])
 @jwt_required(role="admin")
