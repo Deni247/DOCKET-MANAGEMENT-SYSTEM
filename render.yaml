@@ -9,15 +9,17 @@ services:
     startCommand: "gunicorn --workers 4 --bind 0.0.0.0:$PORT Docket-system-backend.app:app"
     envVars:
       - key: HOST
-        sync: false
+        value: gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+      - key: PORT
+        value: 4000
       - key: USERNAME
-        sync: false
+        value: 2wGfoFiLFYb2YT7.root
       - key: PASSWORD
-        sync: false
+        value: kHwx6CzeHnQmSWNV
       - key: DATABASE
-        sync: false
+        value: docket_system2
       - key: CA
-        sync: false
+        value: Docket-system-backend/isrgrootx1.pem
       - key: DB_PLATFORM
         value: TIDB
       - key: JWT_SECRET
