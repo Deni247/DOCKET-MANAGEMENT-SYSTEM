@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="dashboard.css">
     <title>Admin Dashboard</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <script>
         if (localStorage.getItem('role') !== 'admin') {
             window.location.href = 'admin-login.html';
@@ -54,18 +54,79 @@
         .block-btn, .unblock-btn { width: 100%; border: none; padding: 0.75rem; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 0.5rem; }
         .block-btn { background-color: #dc3545; color: white; }
         .unblock-btn { background-color: #28a745; color: white; }
+
+        .menu-toggle-btn {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            justify-content: space-around;
+            width: 30px;
+            height: 25px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            margin-right: 1rem;
+        }
+
+        .menu-icon {
+            width: 100%;
+            height: 3px;
+            background-color: white;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle-btn {
+                display: flex; /* Show on mobile */
+            }
+
+            .tabs {
+                display: none; /* Hide tabs by default on mobile */
+                flex-direction: column;
+                width: 100%;
+                background-color: #f8f9fa;
+                border-radius: 0;
+                box-shadow: none;
+                margin-bottom: 0;
+            }
+
+            .tabs.tabs-mobile {
+                display: flex; /* Show tabs when mobile menu is open */
+            }
+
+            .tab-button {
+                width: 100%;
+                text-align: left;
+                padding: 1rem;
+                border-bottom: 1px solid #ddd;
+                color: #333;
+            }
+
+            .tab-button.active {
+                background-color: #e9ecef;
+                border-left: 4px solid #002366;
+                border-bottom-color: #ddd;
+            }
+        }
     </style>
 </head>
 <body>
     <header>
         <div class="header-content">
+            <button id="menu-toggle" class="menu-toggle-btn">
+                <span class="menu-icon"></span>
+                <span class="menu-icon"></span>
+                <span class="menu-icon"></span>
+            </button>
             <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo">
             <h1>Admin Dashboard</h1>
         </div>
         <button id="logoutBtn">Logout</button>
     </header>
 
+    <!-- Main content area with tabbed navigation -->
     <main>
+        <!-- Tab buttons for navigating between sections -->
         <div class="tabs">
             <button class="tab-button active" onclick="openTab(event, 'welcome')">Welcome</button>
             <button class="tab-button" onclick="openTab(event, 'payments')">Student Management</button>
@@ -73,25 +134,30 @@
             <button class="tab-button" onclick="openTab(event, 'verify')">Verify Docket</button>
         </div>
 
+        <!-- Welcome tab content -->
         <div id="welcome" class="tab-content active">
             <h2>Welcome, Admin!</h2>
             <p>Use the tabs to manage student payments, control docket access, and verify dockets.</p>
         </div>
 
+        <!-- Student Management tab content -->
         <div id="payments" class="tab-content">
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="Search by name or student number...">
                 <button id="searchBtn">Search</button>
             </div>
-            <div id="results-container"><!-- Search results will be displayed here --></div>
+            <!-- Container where student search results will be dynamically loaded -->
+            <div id="results-container"></div>
         </div>
 
+        <!-- Docket Controls tab content -->
         <div id="controls" class="tab-content">
             <div class="settings-card">
                 <h3>Active Docket Settings</h3>
                 <div class="form-group">
                     <label>Select the only docket type that eligible students can currently print:</label>
                     <div>
+                        <!-- Radio buttons to set the currently active exam for docket printing -->
                         <input type="radio" id="exam_ca1" name="active_exam" value="ca1"><label for="exam_ca1"> CA 1</label><br>
                         <input type="radio" id="exam_ca2" name="active_exam" value="ca2"><label for="exam_ca2"> CA 2</label><br>
                         <input type="radio" id="exam_exam" name="active_exam" value="exam"><label for="exam_exam"> Final Exam</label><br>
@@ -101,6 +167,7 @@
             </div>
         </div>
 
+        <!-- Docket Verification tab content -->
         <div id="verify" class="tab-content">
             <div class="instructions">
                 <h4>Scanning Instructions</h4>
@@ -112,18 +179,30 @@
                 </ul>
             </div>
             <h2 style="text-align: center;">Point Camera at Docket QR Code</h2>
+            <!-- Element where the QR code scanner will be rendered -->
             <div id="reader"></div>
+            <!-- Container to display the verification result (valid or invalid) -->
             <div id="result-container" style="text-align: center;">
                 <p>Waiting for scan...</p>
             </div>
         </div>
     </main>
 
+    <!-- External JavaScript libraries -->
+    <!-- html5-qrcode library for QR code scanning functionality -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- IndexedDB helper script for offline data storage -->
     <script src="db.js"></script>
 
+    <!-- Main script for the admin dashboard functionality -->
     <script>
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.querySelector('.tabs').classList.toggle('tabs-mobile');
+        });
+
+        // Retrieve the JWT token from local storage
         const token = localStorage.getItem("token");
+        // Initialize an array to hold the list of blocked students
         let blockedStudentsList = [];
 
         async function syncDataForOfflineUse() {

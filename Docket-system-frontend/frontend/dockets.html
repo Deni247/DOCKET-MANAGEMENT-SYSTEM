@@ -1,14 +1,27 @@
+<!-- 
+This page allows students to view their eligibility for different exam dockets
+and to download the ones they are eligible for.
+-->
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Page title -->
   <title>Dockets</title>
+  
+  <!-- Link to the main dashboard stylesheet -->
   <link rel="stylesheet" href="dashboard.css">
+  
+  <!-- 
+    Security check: Redirects to the login page if no student_id is found in local storage.
+    This ensures that only authenticated students can access this page.
+  -->
   <script>
-      // Security check: Redirect to login if no session is found
       if (!localStorage.getItem('student_id')) {
           window.location.href = 'students-portal.html';
       }
   </script>
+  
+  <!-- Internal styles for the dockets table -->
   <style>
     .dockets-table {
         width: 100%;
@@ -38,11 +51,11 @@
         background-color: #f7faff;
     }
     .status-eligible {
-        color: #28a745;
+        color: #28a745; /* Green for eligible */
         font-weight: 700;
     }
     .status-ineligible {
-        color: #dc3545;
+        color: #dc3545; /* Red for not eligible */
         font-weight: 700;
     }
     .action-btn {
@@ -59,12 +72,13 @@
         background-color: #e6c300;
     }
     .action-text {
-        color: #721c24;
+        color: #721c24; /* Dark red for text for ineligible students */
         font-style: italic;
     }
   </style>
 </head>
 <body>
+  <!-- Sidebar navigation menu -->
   <div class="sidebar">
     <a href="dashboard.html">Home</a>
     <a href="dockets.html" class="active">Dockets</a>
@@ -72,43 +86,57 @@
     <a href="results.html">Results</a>
   </div>
 
+  <!-- Header section with logo, title, and logout button -->
   <div class="header">
     <img src="cavendish-logo.png" alt="Cavendish Logo" class="logo">
     <h1>Dockets</h1>
     <button class="logout" id="logoutBtn">Logout</button>
   </div>
 
+  <!-- Main content area -->
   <div class="main">
     <h2>Your Exam Dockets</h2>
-    <p>Downlaod your Docket For Upcoming or on going exams below.</p>
-    <p>If you are not able to download your docket kindly visit the Rententions office.</p>
+    <p>Download your Docket For Upcoming or on going exams below.</p>
+    <p>If you are not able to download your docket kindly visit the Retentions office.</p>
+    
+    <!-- This section will be dynamically filled with the dockets eligibility table -->
     <div id="docketSection">Loading eligibility...</div>
   </div>
 
+<!-- JavaScript for fetching and displaying docket information -->
 <script>
+/**
+ * Asynchronously fetches the student's docket eligibility from the server
+ * and dynamically builds a table to display the information.
+ */
 async function loadDockets() {
   const student_id = localStorage.getItem("student_id");
   // The security check at the top already handles the case where student_id is null
 
   try {
+    // Fetch eligibility data from the backend API
     const res = await fetch(`/dockets/eligibility/${student_id}`);
     const json = await res.json();
 
+    // Handle cases where the request was not successful
     if (!json.ok) {
-      // If token is invalid or expired, the API returns an error. Redirect to login.
+      // If the token is invalid or expired (401 Unauthorized), redirect to login
       if (res.status === 401) {
           window.location.href = 'students-portal.html';
           return;
       }
+      // Display other errors from the API
       document.getElementById("docketSection").innerText = json.error || "Error fetching eligibility.";
       return;
     }
 
+    // Build the HTML for the eligibility table
     let html = "<table class='dockets-table'><thead><tr><th>Exam Type</th><th>Status</th><th>Action</th></tr></thead><tbody>";
     json.eligibility.forEach(e => {
       const isEligible = e.eligible;
       const statusClass = isEligible ? 'status-eligible' : 'status-ineligible';
       const statusText = isEligible ? 'Eligible' : 'Not Eligible';
+      // Display a download button for eligible dockets, or an instruction for ineligible ones
       const actionHtml = isEligible
         ? `<button class='action-btn' onclick="previewDocket('${e.exam_type}')">Preview & Download</button>`
         : `<span class='action-text'>Please visit Retentions Office</span>`;
@@ -120,6 +148,8 @@ async function loadDockets() {
                </tr>`;
     });
     html += "</tbody></table>";
+    
+    // Insert the generated table into the page
     document.getElementById("docketSection").innerHTML = html;
   } catch (error) {
     console.error('Error fetching dockets:', error);
@@ -127,18 +157,25 @@ async function loadDockets() {
   }
 }
 
+/**
+ * Opens the docket preview page in a new tab.
+ * @param {string} exam_type - The type of exam for which to preview the docket (e.g., 'ca1', 'exam').
+ */
 function previewDocket(exam_type) {
   const student_id = localStorage.getItem("student_id");
   const previewUrl = `docket-preview.html?student_id=${student_id}&exam_type=${exam_type}`;
   window.open(previewUrl, '_blank');
 }
 
+/**
+ * Handles the logout process by clearing local storage and redirecting to the login page.
+ */
 document.getElementById("logoutBtn").onclick = async () => {
-    // No need to call a /logout endpoint if just clearing client-side session
     localStorage.clear();
     window.location.href = "students-portal.html";
 };
 
+// Load the docket eligibility information when the page loads
 loadDockets();
 </script>
 </body>

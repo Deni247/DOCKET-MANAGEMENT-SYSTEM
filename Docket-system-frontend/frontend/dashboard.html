@@ -1,10 +1,22 @@
+<!-- 
+This is the student's main dashboard page, displayed after a successful login.
+It provides a welcome message, shows basic student information, and contains navigation
+to other parts of the student portal.
+-->
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- Page title -->
     <title>Student Dashboard</title>
+    
+    <!-- Link to the dashboard-specific stylesheet -->
     <link rel="stylesheet" type="text/css" href="dashboard.css">
+    
+    <!-- 
+      Security check: Redirects to the login page if no student_id is found in local storage.
+      This ensures that only authenticated students can access this page.
+    -->
     <script>
-        // Security check: Redirect to login if no session is found
         if (!localStorage.getItem('student_id')) {
             window.location.href = 'students-portal.html';
         }
@@ -12,14 +24,19 @@
 </head>
 <body>
 
-    <!-- Header -->
+    <!-- Header section with logo, title, and logout button -->
     <div class="header">
+        <button id="menu-toggle" class="menu-toggle-btn">
+            <span class="menu-icon"></span>
+            <span class="menu-icon"></span>
+            <span class="menu-icon"></span>
+        </button>
         <img src="cavendish-logo.png" alt="Cavendish Logo" class="logo">
         <h1>Student Dashboard</h1>
         <button class="logout" id="logoutBtn">Logout</button>
     </div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar navigation menu -->
     <div class="sidebar">
         <a href="dashboard.html" class="active">Home</a>
         <a href="dockets.html">Dockets</a>
@@ -27,11 +44,15 @@
         <a href="results.html">Results</a>
     </div>
 
-    <!-- Main content -->
+    <!-- Main content area of the dashboard -->
     <div class="main">
+        <!-- Welcome message, personalized with the student's name -->
         <h2 id="welcomeMsg">CUZ Online welcomes ...</h2>
+        
+        <!-- Placeholder for the student's programme information -->
         <p id="programmeInfo">Fetching your programme...</p>
 
+        <!-- A sample card, which can be used to display summary information -->
         <div class="card">
             <h3>Docket Info</h3>
             <p>Status: Paid</p>
@@ -39,8 +60,19 @@
         </div>
     </div>
 
+<!-- JavaScript for dashboard functionality -->
 <script>
+document.getElementById('menu-toggle').addEventListener('click', function() {
+    document.querySelector('.sidebar').classList.toggle('sidebar-mobile');
+});
+
+/**
+ * Asynchronously loads and displays the student's dashboard information.
+ * It retrieves the student's name from local storage and fetches additional details
+ * like their programme from the server.
+ */
 async function loadDashboard() {
+    // Get student's name from local storage for a quick, personalized welcome
     const first = localStorage.getItem("student_first_name");
     const last = localStorage.getItem("student_last_name");
 
@@ -49,13 +81,16 @@ async function loadDashboard() {
     }
 
     try {
+        // Fetch detailed user information from the '/me' endpoint
         const res = await fetch("/me", {
             method: "GET",
-            credentials: "include",
-            headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
+            credentials: "include", // Ensures cookies are sent
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") } // Uses token for stateless auth
         });
 
         const json = await res.json();
+        
+        // If the request was successful and user data is present
         if (json.ok && json.user) {
             if (json.user.programme) {
                 document.getElementById("programmeInfo").textContent = 
@@ -67,19 +102,29 @@ async function loadDashboard() {
             document.getElementById("programmeInfo").textContent = "Could not fetch your info.";
         }
     } catch (err) {
+        // Handle network or other errors during the fetch
         document.getElementById("programmeInfo").textContent = "Error fetching data.";
     }
 }
 
+/**
+ * Handles the logout process.
+ * It sends a request to the server to invalidate the session/cookie,
+ * clears all data from local storage, and redirects to the login page.
+ */
 document.getElementById("logoutBtn").onclick = async () => {
+    // Notify the backend to log the user out
     await fetch("/logout", {
         method: "POST",
         credentials: "include"
     });
+    // Clear all session-related data from the browser
     localStorage.clear();
+    // Redirect to the student portal login page
     window.location.href = "students-portal.html";
 };
 
+// Load the dashboard data when the script is executed
 loadDashboard();
 </script>
 </body>

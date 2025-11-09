@@ -1,70 +1,94 @@
+<!-- 
+This page provides a login form for administrators to access the admin dashboard.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags for character set, viewport, and compatibility -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Link to the main stylesheet -->
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Page title -->
     <title>Admin Portal</title>
 </head>
 <body>
+    <!-- Header section for the admin portal -->
     <header>
         <h1>Cavendish Admin Portal</h1>
     </header>
 
-    <!-- Cavendish Logo -->
+    <!-- University logo -->
     <img src="cavendish-logo.png" alt="Cavendish University Logo" class="logo" width="150">
 
+    <!-- Admin login form container -->
     <div class="admin-login-form">
         <h2>Admin Login</h2>
+        
+        <!-- Input fields for admin username and password -->
         <input id="admin_username" type="text" placeholder="Enter Admin Username">
         <input id="admin_password" type="password" placeholder="Enter Admin Password">
+        
+        <!-- Login button -->
         <button id="adminLoginBtn">Login as Admin</button>
 
-        <!-- Error Message Display -->
+        <!-- Element to display error messages during login -->
         <div id="errorMessage" class="error-message"></div>
     </div>
 
+<!-- JavaScript for handling the admin login process -->
 <script>
+/**
+ * Handles the click event for the admin login button.
+ * It fetches the username and password, sends them to the server for authentication,
+ * and handles the response (redirecting on success or showing an error on failure).
+ */
 document.getElementById("adminLoginBtn").onclick = async () => {
+    // Get username and password from input fields
     const username = document.getElementById("admin_username").value;
     const password = document.getElementById("admin_password").value;
     const errorMessageDiv = document.getElementById("errorMessage");
 
-    // Reset error message
+    // Clear any previous error messages
     errorMessageDiv.style.display = 'none';
     errorMessageDiv.innerText = '';
 
     try {
+        // Send a POST request to the /login endpoint
         const res = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                student_number: username,
+                student_number: username, // The backend expects 'student_number' for both students and admins
                 password: password,
                 role: "admin",
-                use_cookie: true
+                use_cookie: true // Requests the server to set an HTTP-only cookie for the session
             }),
-            credentials: "include"
+            credentials: "include" // Ensures cookies are sent with the request
         });
 
         const json = await res.json();
 
+        // If login is successful
         if (json.ok) {
-            // Store the token (optional)
+            // Store the token in local storage for API requests from the client-side
             if (json.token) localStorage.setItem("token", json.token);
+            // Store the user's role
             localStorage.setItem("role", "admin");
 
-            // Redirect to admin dashboard
+            // Redirect to the admin dashboard
             window.location.href = "admin-dashboard.html";
         } else {
-            // Display user-friendly error
+            // Display a user-friendly error message on failure
             errorMessageDiv.innerText = json.error === "Connection error. Please try again later."
                 ? "Database connection error. Please try again later."
                 : "Login failed. Please check your credentials and try again.";
             errorMessageDiv.style.display = 'block';
         }
     } catch (err) {
-        // Display generic network/fetch error
+        // Display a generic error for network issues or other unexpected problems
         errorMessageDiv.innerText = "An unexpected error occurred. Please check your network and try again.";
         errorMessageDiv.style.display = 'block';
     }

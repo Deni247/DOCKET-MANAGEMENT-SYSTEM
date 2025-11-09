@@ -1,11 +1,23 @@
+<!-- 
+This page is used to display a preview of a generated docket PDF.
+It fetches the PDF from a specific endpoint and embeds it in an iframe for viewing.
+It also provides a button to download the PDF.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags for character set, viewport, and compatibility -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Page title -->
     <title>Docket Preview</title>
+    
+    <!-- Internal styles for the preview page layout -->
     <style>
         body { font-family: sans-serif; margin: 0; }
+        
+        /* Top bar containing the title and download button */
         .top-bar {
             background: #f0f0f0;
             padding: 10px;
@@ -15,6 +27,8 @@
             align-items: center;
         }
         .top-bar h1 { margin: 0; font-size: 1.2em; }
+        
+        /* Style for the download button */
         .print-btn {
             padding: 8px 16px;
             background-color: #007bff;
@@ -24,9 +38,12 @@
             cursor: pointer;
         }
         .print-btn:hover { background-color: #0056b3; }
+        
+        /* Container for the PDF iframe */
         #pdf-container { width: 100%; height: calc(100vh - 50px); }
         iframe { width: 100%; height: 100%; border: none; }
 
+        /* Print-specific styles to hide the top bar when printing */
         @media print {
             .top-bar {
                 display: none;
@@ -38,38 +55,52 @@
     </style>
 </head>
 <body>
+    <!-- Top bar with title and download button -->
     <div class="top-bar">
         <h1>Docket Preview</h1>
         <button class="print-btn" onclick="downloadPdf()">Download Docket</button>
     </div>
+    
+    <!-- Container where the PDF will be displayed -->
     <div id="pdf-container">
         <iframe id="pdf-iframe" title="Docket Preview"></iframe>
     </div>
 
+<!-- JavaScript for handling PDF loading and downloading -->
 <script>
+    /**
+     * Opens the PDF in a new tab, allowing the user to download it using their
+     * browser's built-in PDF viewer functionality.
+     */
     function downloadPdf() {
         const iframe = document.getElementById('pdf-iframe');
         const pdfUrl = iframe.src;
 
         if (pdfUrl) {
-            // Open the existing PDF preview URL in a new tab.
-            // The user can then save/download it using their browser's PDF viewer controls.
+            // Open the PDF URL in a new tab. The browser's PDF viewer will handle the download.
             window.open(pdfUrl, '_blank');
         } else {
             alert("PDF is not available for download yet. Please wait for it to load.");
         }
     }
 
-    // Load the PDF into the iframe for preview
+    /**
+     * On page load, this function reads the student ID and exam type from the URL parameters,
+     * constructs the PDF generation URL, and sets it as the source for the iframe.
+     */
     window.onload = () => {
         const params = new URLSearchParams(window.location.search);
         const student_id = params.get('student_id');
         const exam_type = params.get('exam_type');
 
+        // Ensure required parameters are present
         if (student_id && exam_type) {
+            // Construct the URL to fetch the PDF from the backend
             const pdfUrl = `/dockets/generate?student_id=${student_id}&exam_type=${exam_type}&preview=true`;
+            // Set the iframe's src to load the PDF
             document.getElementById('pdf-iframe').src = pdfUrl;
         } else {
+            // Display an error if parameters are missing
             document.body.innerHTML = "<h1>Error: Missing student ID or exam type.</h1>";
         }
     };
