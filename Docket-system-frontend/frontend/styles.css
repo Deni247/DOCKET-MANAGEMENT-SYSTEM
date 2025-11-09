@@ -16,7 +16,8 @@ body {
 
 /* Input fields */
 input[type="text"], input[type="password"] {
-    width: 320px;             
+    width: 90%; /* Make it responsive */
+    max-width: 320px; /* Set a maximum width */
     padding: 14px;
     margin: 10px 0;
     border: 1px solid #333;
@@ -40,7 +41,8 @@ input[type="text"], input[type="password"] {
 
 /* Login button */
 button {
-    width: 320px;
+    width: 90%; /* Make it responsive */
+    max-width: 320px; /* Set a maximum width */
     padding: 14px;
     background-color: #0d3b75;
     color: white;
@@ -55,6 +57,18 @@ button:hover {
     background-color: #0b2e5a;
 }
 
+/* Admin login form container */
+.admin-login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%; /* Take full width to allow centering of children */
+    max-width: 400px; /* Optional: limit overall width */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
 /* Error Message Style */
 .error-message {
     color: #004085; /* Blue */
@@ -63,7 +77,8 @@ button:hover {
     border-radius: 5px;
     padding: 10px;
     margin: 10px 0;
-    width: 320px;
+    width: 90%; /* Make it responsive */
+    max-width: 320px; /* Set a maximum width */
     box-sizing: border-box;
     text-align: center;
     font-weight: bold;
