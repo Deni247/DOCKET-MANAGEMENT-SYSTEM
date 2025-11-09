@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# TiDB cluster remote connection session file
+Docket-Management-System.session.sql
+
 # C extensions
 *.so
 
