@@ -36,48 +36,51 @@ JWT_EXP_SECONDS = int(os.getenv("JWT_EXP_SECONDS", 60 * 60 * 8))  # 8 hours
 
 # -------------------- Database Connection --------------------
 def get_db_connection():
-    db_platform = os.getenv("DB_PLATFORM", "render")
+    db_platform = os.getenv("DB_PLATFORM")
 
-    if db_platform == 'XAMPP':
-        # Configuration for local XAMPP (MariaDB) without SSL
-        return mysql.connector.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            database=os.getenv("DB_NAME", "docket_system2"),
-            autocommit=False,
-            ssl_disabled=True
-        )
-    elif db_platform == 'TIDB':
-        # Configuration for TiDB with SSL
-        ca_path = os.getenv("CA_PATH")
-        if ca_path and not os.path.exists(ca_path):
-            # If CA_PATH is provided but file doesn't exist, it might be the cert content
-            ca_path = "/tmp/tidb_ca.pem"
-            with open(ca_path, "w") as f:
-                f.write(os.getenv("CA_PATH"))
-
-        return mysql.connector.connect(
-            host=os.getenv("HOST"),
-            port=os.getenv("PORT"),
-            user=os.getenv("USERNAME"),
-            password=os.getenv("PASSWORD"),
-            database=os.getenv("DATABASE"),
-            autocommit=False,
-            ssl_ca=ca_path,
-            ssl_verify_cert=True if ca_path else False
-        )
-    else: # Default to render
-        # Default configuration for Render with SSL
-        return mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-            autocommit=False,
-            ssl_verify_cert=True,
-            ssl_ca=os.getenv("DB_SSL_CA_PATH", "/etc/ssl/certs/ca-certificates.crt") # Common path for CA certs
-        )
+    try:
+        if db_platform == 'XAMPP':
+            # Configuration for local XAMPP (MariaDB) without SSL
+            return mysql.connector.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                user=os.getenv("DB_USER", "root"),
+                password=os.getenv("DB_PASSWORD", ""),
+                database=os.getenv("DB_NAME", "docket_system2"),
+                autocommit=False,
+                ssl_disabled=True
+            )
+        else:
+            # Configuration for TiDB with SSL
+            ca_path = os.getenv("CA_PATH")
+            if ca_path and not os.path.exists(ca_path):
+                # If CA_PATH is provided but file doesn't exist, it might be the cert content
+                ca_path = "/tmp/tidb_ca.pem"
+                with open(ca_path, "w") as f:
+                    f.write(os.getenv("CA_PATH"))
+            return mysql.connector.connect(
+                host=os.getenv("HOST"),
+                port=int(os.getenv("PORT", 4000)),
+                user=os.getenv("USERNAME"),
+                password=os.getenv("PASSWORD"),
+                database=os.getenv("DATABASE"),
+                autocommit=False,
+                ssl_ca=ca_path,
+                ssl_verify_cert=True if ca_path else False
+            )
+        # else: # Default to render
+        #     # Default configuration for Render with SSL
+        #     return mysql.connector.connect(
+        #         host=os.getenv("DB_HOST"),
+        #         user=os.getenv("DB_USER"),
+        #         password=os.getenv("DB_PASSWORD"),
+        #         database=os.getenv("DB_NAME"),
+        #         autocommit=False,
+        #         ssl_verify_cert=True,
+        #         ssl_ca=os.getenv("DB_SSL_CA_PATH", "/etc/ssl/certs/ca-certificates.crt") # Common path for CA certs
+        #     )
+    except mysql.connector.Error as err:
+        app.logger.error(f"Database connection error ({db_platform}): {err}")
+        raise
 
 
 # -------------------- JWT Auth Decorator --------------------
@@ -189,8 +192,8 @@ def login():
         return resp
 
     except mysql.connector.Error as err:
-        app.logger.error(f"Database connection error: {err}")
-        return jsonify({"ok": False, "error": "Connection error. Please try again later."}), 500
+        app.logger.error(f"Database error during login: {err}")
+        return jsonify({"ok": False, "error": "Database connection error. Please try again later."}), 500
 
 
 @app.route("/logout", methods=["POST"])
