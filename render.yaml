@@ -18,7 +18,7 @@ services:
         value: kHwx6CzeHnQmSWNV
       - key: DATABASE
         value: docket_system2
-      - key: CA
+      - key: CA_PATH
         value: Docket-system-backend/isrgrootx1.pem
       - key: DB_PLATFORM
         value: TIDB
