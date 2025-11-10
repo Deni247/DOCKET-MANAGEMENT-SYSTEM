@@ -46,13 +46,9 @@ to other parts of the student portal.
 
     <!-- Main content area of the dashboard -->
     <div class="main">
-        <!-- Welcome message, personalized with the student's name -->
         <h2 id="welcomeMsg">CUZ Online welcomes ...</h2>
-        
-        <!-- Placeholder for the student's programme information -->
         <p id="programmeInfo">Fetching your programme...</p>
 
-        <!-- A sample card, which can be used to display summary information -->
         <div class="card">
             <h3>Docket Info</h3>
             <p>Status: Paid</p>
@@ -62,17 +58,16 @@ to other parts of the student portal.
 
 <!-- JavaScript for dashboard functionality -->
 <script>
+// Toggles the visibility of the sidebar menu on mobile screens.
 document.getElementById('menu-toggle').addEventListener('click', function() {
     document.querySelector('.sidebar').classList.toggle('sidebar-mobile');
 });
 
-/**
- * Asynchronously loads and displays the student's dashboard information.
- * It retrieves the student's name from local storage and fetches additional details
- * like their programme from the server.
- */
+// Asynchronously loads and displays the student's dashboard information.
+// It retrieves the student's name from local storage and fetches additional details
+// like their programme from the server.
 async function loadDashboard() {
-    // Get student's name from local storage for a quick, personalized welcome
+    // Get student's name from local storage for a quick, personalized welcome.
     const first = localStorage.getItem("student_first_name");
     const last = localStorage.getItem("student_last_name");
 
@@ -81,16 +76,16 @@ async function loadDashboard() {
     }
 
     try {
-        // Fetch detailed user information from the '/me' endpoint
+        // Fetch detailed user information from the '/me' endpoint.
         const res = await fetch("/me", {
             method: "GET",
-            credentials: "include", // Ensures cookies are sent
-            headers: { "Authorization": "Bearer " + localStorage.getItem("token") } // Uses token for stateless auth
+            credentials: "include", // Ensures cookies are sent.
+            headers: { "Authorization": "Bearer " + localStorage.getItem("token") } // Uses token for stateless auth.
         });
 
         const json = await res.json();
         
-        // If the request was successful and user data is present
+        // If the request was successful and user data is present, update programme info.
         if (json.ok && json.user) {
             if (json.user.programme) {
                 document.getElementById("programmeInfo").textContent = 
@@ -102,29 +97,27 @@ async function loadDashboard() {
             document.getElementById("programmeInfo").textContent = "Could not fetch your info.";
         }
     } catch (err) {
-        // Handle network or other errors during the fetch
+        // Handle network or other errors during the fetch.
         document.getElementById("programmeInfo").textContent = "Error fetching data.";
     }
 }
 
-/**
- * Handles the logout process.
- * It sends a request to the server to invalidate the session/cookie,
- * clears all data from local storage, and redirects to the login page.
- */
+// Handles the logout process.
+// It sends a request to the server to invalidate the session/cookie,
+// clears all data from local storage, and redirects to the login page.
 document.getElementById("logoutBtn").onclick = async () => {
-    // Notify the backend to log the user out
+    // Notify the backend to log the user out.
     await fetch("/logout", {
         method: "POST",
         credentials: "include"
     });
-    // Clear all session-related data from the browser
+    // Clear all session-related data from the browser.
     localStorage.clear();
-    // Redirect to the student portal login page
+    // Redirect to the student portal login page.
     window.location.href = "students-portal.html";
 };
 
-// Load the dashboard data when the script is executed
+// Load the dashboard data when the script is executed.
 loadDashboard();
 </script>
 </body>

@@ -40,55 +40,47 @@ This page provides a login form for administrators to access the admin dashboard
 
 <!-- JavaScript for handling the admin login process -->
 <script>
-/**
- * Handles the click event for the admin login button.
- * It fetches the username and password, sends them to the server for authentication,
- * and handles the response (redirecting on success or showing an error on failure).
- */
+// Event listener for the admin login button click.
 document.getElementById("adminLoginBtn").onclick = async () => {
-    // Get username and password from input fields
     const username = document.getElementById("admin_username").value;
     const password = document.getElementById("admin_password").value;
     const errorMessageDiv = document.getElementById("errorMessage");
 
-    // Clear any previous error messages
+    // Clear any previous error messages.
     errorMessageDiv.style.display = 'none';
     errorMessageDiv.innerText = '';
 
     try {
-        // Send a POST request to the /login endpoint
+        // Send login credentials to the backend's /login endpoint.
         const res = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                student_number: username, // The backend expects 'student_number' for both students and admins
+                student_number: username, // Backend expects 'student_number' for both student and admin logins.
                 password: password,
                 role: "admin",
-                use_cookie: true // Requests the server to set an HTTP-only cookie for the session
+                use_cookie: true // Request an HTTP-only cookie for the JWT.
             }),
-            credentials: "include" // Ensures cookies are sent with the request
+            credentials: "include" // Ensures cookies are sent with the request.
         });
 
         const json = await res.json();
 
-        // If login is successful
+        // If login is successful, store the token and role in local storage, then redirect.
         if (json.ok) {
-            // Store the token in local storage for API requests from the client-side
-            if (json.token) localStorage.setItem("token", json.token);
-            // Store the user's role
-            localStorage.setItem("role", "admin");
+            if (json.token) localStorage.setItem("token", json.token); // Store JWT token.
+            localStorage.setItem("role", "admin"); // Store user role.
 
-            // Redirect to the admin dashboard
-            window.location.href = "admin-dashboard.html";
+            window.location.href = "admin-dashboard.html"; // Redirect to admin dashboard.
         } else {
-            // Display a user-friendly error message on failure
+            // Display a user-friendly error message on login failure.
             errorMessageDiv.innerText = json.error === "Connection error. Please try again later."
                 ? "Database connection error. Please try again later."
                 : "Login failed. Please check your credentials and try again.";
             errorMessageDiv.style.display = 'block';
         }
     } catch (err) {
-        // Display a generic error for network issues or other unexpected problems
+        // Display a generic error for network issues or other unexpected problems.
         errorMessageDiv.innerText = "An unexpected error occurred. Please check your network and try again.";
         errorMessageDiv.style.display = 'block';
     }
