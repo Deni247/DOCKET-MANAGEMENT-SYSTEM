@@ -35,23 +35,7 @@
         <p>Surname:<span id="studentSurname"></span> First Name:<span id="studentFirstName"></span></p>
         <p>Student Number:<span id="studentNumber"></span></p>
         
-        <div class="results-table-container">
-            <table id="resultsTable">
-                <thead>
-                    <tr>
-                        <th>Academic Year</th>
-                        <th>Campus</th>
-                        <th>Module</th>
-                        <th>Intake</th>
-                        <th>Study Method</th>
-                        <th>Result</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Results will be dynamically inserted here -->
-                </tbody>
-            </table>
-        </div>
+        <p>Academic results are not yet available as examinations have not been conducted.</p>
     </div>
 
 <script>
@@ -68,64 +52,13 @@ document.getElementById("logoutBtn").onclick = async () => {
     window.location.href = "students-portal.html";
 };
 
-async function loadStudentResults() {
-    const studentId = localStorage.getItem('student_id');
-    const token = localStorage.getItem('token');
-    const studentFirstName = localStorage.getItem('student_first_name');
-    const studentLastName = localStorage.getItem('student_last_name');
+const studentNumber = localStorage.getItem('student_number');
+const studentFirstName = localStorage.getItem('student_first_name');
+const studentLastName = localStorage.getItem('student_last_name');
 
-    document.getElementById('studentSurname').textContent = studentLastName;
-    document.getElementById('studentFirstName').textContent = studentFirstName;
-    document.getElementById('studentNumber').textContent = studentId;
-
-    if (!studentId || !token) {
-        console.error("Student ID or token not found in local storage.");
-        return;
-    }
-
-    try {
-        // Assuming a new endpoint '/api/student/results' will be created in the backend
-        const response = await fetch(`/dockets/api/student/results?student_id=${studentId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.ok && data.results) {
-            const resultsTableBody = document.querySelector('#resultsTable tbody');
-            resultsTableBody.innerHTML = ''; // Clear existing rows
-
-            data.results.forEach(result => {
-                const row = resultsTableBody.insertRow();
-                row.insertCell().textContent = result.academic_year;
-                row.insertCell().textContent = result.campus;
-                row.insertCell().textContent = result.module;
-                row.insertCell().textContent = result.intake;
-                row.insertCell().textContent = result.study_method;
-                row.insertCell().textContent = result.result_grade; // Assuming 'result_grade' from backend
-            });
-        } else {
-            console.log("No results found or error in response:", data.message);
-            const resultsTableBody = document.querySelector('#resultsTable tbody');
-            resultsTableBody.innerHTML = '<tr><td colspan="6">No academic results available.</td></tr>';
-        }
-
-    } catch (error) {
-        console.error("Error fetching student results:", error);
-        const resultsTableBody = document.querySelector('#resultsTable tbody');
-        resultsTableBody.innerHTML = '<tr><td colspan="6">Error loading results. Please try again later.</td></tr>';
-    }
-}
-
-// Load results when the page loads
-loadStudentResults();
+document.getElementById('studentSurname').textContent = studentLastName;
+document.getElementById('studentFirstName').textContent = studentFirstName;
+document.getElementById('studentNumber').textContent = studentNumber;
 </script>
 </body>
 </html>

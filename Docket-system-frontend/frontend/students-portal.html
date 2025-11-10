@@ -79,6 +79,7 @@ document.getElementById("loginBtn").onclick = async () => {
             localStorage.setItem("student_first_name", json.user.first_name);
             localStorage.setItem("student_last_name", json.user.last_name);
             localStorage.setItem("student_id", json.user.id);
+            localStorage.setItem("student_number", json.user.student_number); // Store the actual student number
             localStorage.setItem("role", "student");
 
             // Redirect to the student dashboard

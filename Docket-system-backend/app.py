@@ -178,6 +178,7 @@ def login():
                 "id": user["id"],
                 "first_name": user.get("first_name"),
                 "last_name": user.get("last_name"),
+                "student_number": user.get("student_number"), # Add student_number here
                 "role": role
             }
         })

@@ -1,3 +1,15 @@
+/* Header styling */
+header {
+    width: 100%; /* Ensure header takes full width */
+    text-align: center; /* Center the text within the header */
+    margin-bottom: 20px; /* Add some space below the header */
+}
+
+header h1 {
+    font-size: 2em; /* Adjust as needed for responsiveness */
+    color: #0d3b75; /* Example color */
+}
+
 /* Center everything on the page */
 body {
     display: flex;
