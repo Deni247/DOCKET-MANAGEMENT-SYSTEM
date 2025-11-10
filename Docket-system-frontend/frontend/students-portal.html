@@ -42,23 +42,18 @@ to enter their credentials and access their dashboard.
 
 <!-- JavaScript for handling the student login process -->
 <script>
-/**
- * Handles the click event for the student login button.
- * It captures the student number and password, sends them to the server for authentication,
- * and on success, stores user data in local storage and redirects to the dashboard.
- * On failure, it displays an error message.
- */
+// Event listener for the login button click.
 document.getElementById("loginBtn").onclick = async () => {
     const student_number = document.getElementById("student_number").value;
     const password = document.getElementById("password").value;
     const errorMessageDiv = document.getElementById("errorMessage");
 
-    // Clear any previous error messages
+    // Clear any previous error messages.
     errorMessageDiv.style.display = 'none';
     errorMessageDiv.innerText = '';
 
     try {
-        // Send a POST request to the /login endpoint
+        // Send login credentials to the backend.
         const res = await fetch("/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -66,33 +61,31 @@ document.getElementById("loginBtn").onclick = async () => {
                 student_number: student_number,
                 password: password,
                 role: "student",
-                use_cookie: true // Request the server to set an HTTP-only cookie
+                use_cookie: true // Request an HTTP-only cookie for the JWT.
             }),
-            credentials: "include" // Ensures cookies are sent with the request
+            credentials: "include" // Ensures cookies are sent with the request.
         });
 
         const json = await res.json();
 
-        // If login is successful
+        // If login is successful, store user data in local storage and redirect.
         if (json.ok) {
-            // Store essential student data in local storage for use across the portal
             localStorage.setItem("student_first_name", json.user.first_name);
             localStorage.setItem("student_last_name", json.user.last_name);
             localStorage.setItem("student_id", json.user.id);
-            localStorage.setItem("student_number", json.user.student_number); // Store the actual student number
+            localStorage.setItem("student_number", json.user.student_number); // Store the actual student number.
             localStorage.setItem("role", "student");
 
-            // Redirect to the student dashboard
             window.location.href = "dashboard.html";
         } else {
-            // Display a user-friendly error message on failure
+            // Display a user-friendly error message on login failure.
             errorMessageDiv.innerText = json.error === "Connection error. Please try again later."
                 ? "Database connection error. Please try again later."
                 : "Login failed. Please check your credentials and try again.";
             errorMessageDiv.style.display = 'block';
         }
     } catch (err) {
-        // Display a generic error for network issues or other unexpected problems
+        // Display a generic error for network issues or unexpected problems.
         errorMessageDiv.innerText = "An unexpected error occurred. Please check your network and try again.";
         errorMessageDiv.style.display = 'block';
     }

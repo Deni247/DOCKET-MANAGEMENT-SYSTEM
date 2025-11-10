@@ -14,15 +14,34 @@ from dotenv import load_dotenv
 import hashlib
 import secrets
 from utils.auth import jwt_required
+import json # Import json for reading settings and blocklist files
 
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Blueprint
+# Blueprint for docket-related routes
 dockets_bp = Blueprint("dockets", __name__)
 
-# ---------------- Helper: Database Connection ----------------
+# Define file paths for exam settings and student blocklist JSON files
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(backend_dir))
+SETTINGS_FILE = os.path.join(project_root, 'Docket-system-backend', 'exam_settings.json')
+BLOCKLIST_FILE = os.path.join(project_root, 'Docket-system-backend', 'blocked_students.json')
+
+# Helper function to read JSON data from a specified file
+def read_json_file(file_path):
+    try:
+        with open(file_path, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # Return default settings or an empty list if file is missing or corrupt
+        if 'settings' in file_path:
+            return {"active_exam": "cat1"}
+        else:
+            return []
+
+# Helper function to establish a database connection
 def get_db_connection():
     db_platform = os.getenv("DB_PLATFORM")
 
@@ -48,13 +67,13 @@ def get_db_connection():
             ssl_verify_cert=True if os.getenv("CA") else False
         )
 
-# ---------------- Helper: Generate PDF Docket ----------------
+# Helper function to generate a PDF exam docket with student information, courses, and a QR code.
 def generate_docket_pdf(student, courses, exam_type, qr_data):
     buffer = BytesIO()
     p = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    # Styles
+    # Styles for PDF content
     styles = getSampleStyleSheet()
     style_normal = styles['Normal']
     style_normal.fontName = 'Helvetica'
@@ -62,11 +81,10 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     style_bold_header = styles['h6']
     style_bold_header.fontName = 'Helvetica-Bold'
 
-    # === REWRITTEN VERTICAL FLOW LOGIC ===
-    # Start drawing from the top, 1 inch from the margin.
+    # Start drawing from the top of the page
     y_pos = height - inch
 
-    # --- Header ---
+    # Draw header elements including university logo, name, and exam type
     logo_path = os.path.join(os.getcwd(), "Docket-system-frontend", "frontend", "cavendish-logo.png")
     if os.path.exists(logo_path):
         p.drawImage(logo_path, inch - 0.5*inch, y_pos - 0.4*inch, width=1*inch, height=0.5*inch, preserveAspectRatio=True)
@@ -85,7 +103,7 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     p.line(inch, y_pos, width - inch, y_pos)
     y_pos -= 0.3 * inch # Margin below line
 
-    # --- Student Info ---
+    # Draw student information table
     info_data = [
         [Paragraph('<b>Date Issued:</b>', style_normal), Paragraph(datetime.now().strftime('%d/%m/%Y'), style_normal)],
         [Paragraph('<b>Student Name:</b>', style_normal), Paragraph(f"{student.get('first_name', '')} {student.get('last_name', '')}", style_normal)],
@@ -105,7 +123,7 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     info_table.drawOn(p, inch, y_pos - info_table_height)
     y_pos -= (info_table_height + 0.4 * inch) # Subtract height and add margin
 
-    # --- Main Courses Table ---
+    # Draw main courses table
     header = [Paragraph(h, style_bold_header) for h in ['Code', 'Module', 'Date', 'Time', 'Venue', "INVIGILATOR'S SIGNATURE"]]
     table_data = [header]
     for course in courses:
@@ -125,7 +143,7 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     main_table.drawOn(p, inch, y_pos - main_table_height)
     y_pos -= (main_table_height + 0.4 * inch)
 
-    # --- Notes ---
+    # Add notes section
     p.setFont("Helvetica-Bold", 11)
     p.drawString(inch, y_pos, "Note:")
     y_pos -= 0.25 * inch
@@ -143,7 +161,7 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
         y_pos -= 0.2 * inch
     y_pos -= 0.4 * inch
 
-    # --- Signatures ---
+    # Add signature lines
     p.drawString(inch, y_pos, "Signed: ............................................")
     p.drawString(inch + 0.5*inch, y_pos - 0.2*inch, "Finance")
     p.drawString(width - 4.5*inch, y_pos, "Signed: ............................................")
@@ -153,12 +171,12 @@ def generate_docket_pdf(student, courses, exam_type, qr_data):
     p.drawString(inch + 0.5*inch, y_pos - 0.2*inch, "Dean of BIT")
     p.drawString(width - 4.5*inch, y_pos, "Date: ............................................")
 
-    # --- QR Code ---
+    # Generate and draw QR code for verification
     qr_img = qrcode.make(qr_data)
     qr_path = f"temp_qr_{student['student_number']}.png"
     qr_img.save(qr_path)
     p.drawImage(qr_path, width - inch - 1.2*inch, 1.5*inch, width=1.2*inch, height=1.2*inch, preserveAspectRatio=True)
-    os.remove(qr_path)
+    os.remove(qr_path) # Clean up temporary QR code image
 
     p.showPage()
     p.save()
@@ -185,6 +203,7 @@ def read_json_file(file_path):
             return []
 
 # ---------------- Route: Check Eligibility ----------------
+# Checks a student's eligibility for a specific exam type based on blocklist and financial clearance.
 @dockets_bp.route("/eligibility/<student_id>", methods=["GET"])
 @jwt_required()
 def check_eligibility(student_id):
@@ -256,6 +275,7 @@ def check_eligibility(student_id):
     return jsonify({"ok": True, "eligibility": eligibility_list})
 
 # ---------------- Route: Generate Docket ----------------
+# Generates an exam docket PDF for a student, including eligibility checks, course information, and a QR code.
 @dockets_bp.route("/generate", methods=["GET", "POST"])
 @jwt_required()
 def generate_docket():
@@ -272,7 +292,7 @@ def generate_docket():
     if not student_id or not exam_type:
         return jsonify({"ok": False, "error": "Missing parameters"}), 400
 
-    # --- New Eligibility Check --- 
+    # Perform eligibility checks based on active exam, blocklist, and financial clearance.
     settings = read_json_file(SETTINGS_FILE)
     blocklist = read_json_file(BLOCKLIST_FILE)
     active_exam = settings.get("active_exam", "cat1")
@@ -296,9 +316,8 @@ def generate_docket():
         cur.close()
         conn.close()
         return jsonify({"ok": False, "error": f"Docket for {exam_type.upper()} is not currently active."}), 403
-    # --- End New Eligibility Check ---
 
-    # Check clearance from DB (original check)
+    # Check clearance from DB
     cur.execute(
         "SELECT ca1_status, ca2_status, exam_status FROM clearances WHERE student_id=%s LIMIT 1",
         (student_id,),
@@ -322,7 +341,7 @@ def generate_docket():
             "error": f"Not eligible for {exam_type.upper()} docket. Please visit the Retentions Office."
         }), 403
 
-    # ---------------- Fetch student info ----------------
+    # Fetch student and course information from the database.
     cur.execute('''
         SELECT s.id, s.first_name, s.last_name, s.student_number, s.programme_id, p.programme_name, s.current_year, s.current_semester
         FROM students s
@@ -350,17 +369,16 @@ def generate_docket():
         conn.close()
         return jsonify({"ok": False, "error": "No enrolled courses found."}), 404
 
-    # ---------------- Generate QR data and token ----------------
+    # Generate QR data and token for docket verification.
     token_value = secrets.token_urlsafe(16)
-    token_hash = hashlib.sha256(token_value.encode()).hexdigest()  # ✅ hash for secure storage
+    token_hash = hashlib.sha256(token_value.encode()).hexdigest()
     qr_data = f"{student['student_number']}|{exam_type}|{token_value}"
 
     try:
-        # ---------------- Ensure token key exists for verification ----------------
+        # Ensure an active token key exists for verification, creating one if necessary.
         cur.execute("SELECT key_id, secret_key FROM token_keys WHERE status='active' LIMIT 1")
         key_row = cur.fetchone()
         if not key_row:
-            # No active key exists, create one
             new_secret_key = secrets.token_urlsafe(32)
             cur.execute('''
                 INSERT INTO token_keys (key_name, secret_key, created_at, status)
@@ -372,7 +390,7 @@ def generate_docket():
             token_key_id = key_row["key_id"]
             secret_key_for_docket = key_row["secret_key"]
 
-        # ---------------- Save to dockets table ----------------
+        # Save docket and token information to the database.
         cur.execute('''
             INSERT INTO dockets (student_id, programme_id, exam_type, year_of_study, semester, qr_code, issued_at, status, printed_count, created_at, updated_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
@@ -389,7 +407,6 @@ def generate_docket():
         ))
         docket_id = cur.lastrowid
 
-        # ---------------- Save to docket_tokens table ----------------
         cur.execute('''
             INSERT INTO docket_tokens (docket_id, token_hash, issued_at, status)
             VALUES (%s, %s, %s, %s)
@@ -410,11 +427,11 @@ def generate_docket():
     cur.close()
     conn.close()
 
-    # ---------------- Generate PDF ----------------
+    # Generate and return the docket PDF.
     pdf_buffer = generate_docket_pdf(student, courses, exam_type, qr_data)
     return send_file(
         pdf_buffer,
-        as_attachment=not is_preview,  # Preview mode determines attachment
+        as_attachment=not is_preview,
         download_name=f"{student['student_number']}{exam_type} docket.pdf",
         mimetype="application/pdf"
     )
@@ -422,6 +439,7 @@ def generate_docket():
 @dockets_bp.route("/payments", methods=["GET"])
 @jwt_required(role="admin")
 def get_payments():
+    # Retrieves a list of all students with their payment balance information.
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
 
@@ -444,6 +462,7 @@ def get_payments():
 @dockets_bp.route("/students/search", methods=["GET"])
 @jwt_required(role="admin")
 def search_students():
+    # Searches for students by name or student number.
     query = request.args.get("q", "").strip()
     if not query:
         return jsonify({"ok": True, "students": []})
@@ -453,7 +472,6 @@ def search_students():
 
     # Heuristic: If the query consists only of digits, it's a student number search.
     if query.isdigit():
-        # Perform an exact match for student number, limit to 1 to handle potential data duplication
         sql = """
             SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
                     sb.total_fee, sb.amount_paid, sb.balance
@@ -494,6 +512,7 @@ def search_students():
 @dockets_bp.route("/payments/update", methods=["POST"])
 @jwt_required(role="admin")
 def update_payment():
+    # Updates a student's payment record and recalculates their eligibility for exams.
     data = request.json
     student_number = data.get("student_number")
     amount = data.get("amount")
@@ -585,7 +604,7 @@ def update_payment():
 @dockets_bp.route("/sync/students", methods=["GET"])
 @jwt_required(role="admin")
 def sync_students():
-    """Endpoint to get all student details for offline caching."""
+    # Endpoint to get all student details for offline caching.
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
     cur.execute("""
@@ -602,11 +621,10 @@ def sync_students():
 @dockets_bp.route("/sync/tokens", methods=["GET"])
 @jwt_required(role="admin")
 def sync_tokens():
-    """Endpoint to get all active docket tokens for offline verification."""
+    # Endpoint to get all active docket tokens for offline verification.
     conn = get_db_connection()
     cur = conn.cursor(dictionary=True)
     cur.execute("SELECT token_hash FROM docket_tokens WHERE status = 'active'")
-    # The fetchall() returns a list of dicts, e.g., [{'token_hash': '...'}]. We need a simple list.
     tokens = [row['token_hash'] for row in cur.fetchall()]
     cur.close()
     conn.close()

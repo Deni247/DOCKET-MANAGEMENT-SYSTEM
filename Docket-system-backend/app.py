@@ -9,32 +9,33 @@ import jwt
 from passlib.hash import bcrypt
 import sys
 
-# Add the backend directory to the Python path
+# Add backend directory to Python path for module imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-# Flask app setup
-# Construct the absolute path to the frontend directory for robust static file serving
+# Configure Flask app to serve frontend static files
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(backend_dir)
 frontend_dir = os.path.join(project_root, "Docket-system-frontend", "frontend")
 
 app = Flask(
     __name__,
-    static_folder=frontend_dir,   # Use the correct absolute path
+    static_folder=frontend_dir,
     static_url_path=""
 )
+# Enable CORS for cross-origin requests
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
 
-# JWT configuration
+# JWT (JSON Web Token) configuration
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-please-and-use-long-random")
 JWT_ALGO = "HS256"
 JWT_EXP_SECONDS = int(os.getenv("JWT_EXP_SECONDS", 60 * 60 * 8))  # 8 hours
 
 
 # -------------------- Database Connection --------------------
+# Establishes a database connection, supporting both local XAMPP (MariaDB) and TiDB with SSL.
 def get_db_connection():
     db_platform = os.getenv("DB_PLATFORM")
 
@@ -84,6 +85,7 @@ def get_db_connection():
 
 
 # -------------------- JWT Auth Decorator --------------------
+# Decorator to protect routes, ensuring only authenticated and authorized users can access them based on JWT and roles.
 def jwt_required(role=None):
     def decorator(f):
         @wraps(f)
@@ -116,11 +118,13 @@ def jwt_required(role=None):
 
 
 # -------------------- Routes --------------------
+# Basic API route to confirm backend is running.
 @app.route("/api")
 def home():
     return jsonify({"message": "Docket System Backend Running ✅"})
 
 
+# Handles user login, authenticates credentials, generates JWT, and sets cookies.
 @app.route("/login", methods=["POST"])
 def login():
     try:
@@ -197,6 +201,7 @@ def login():
         return jsonify({"ok": False, "error": "Database connection error. Please try again later."}), 500
 
 
+# Handles user logout by clearing the access token cookie.
 @app.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
@@ -205,6 +210,7 @@ def logout():
     return resp
 
 
+# Returns information about the currently authenticated user.
 @app.route("/me", methods=["GET"])
 @jwt_required()
 def me():
@@ -213,12 +219,14 @@ def me():
 
 
 # -------------------- Serve Frontend --------------------
+# Serves the main student portal HTML file.
 @app.route("/")
 def serve_index():
     """Serve student portal HTML"""
     return send_from_directory(app.static_folder, "students-portal.html")
 
 
+# Serves all other static frontend files (CSS, JS, images, etc.).
 @app.route("/<path:path>")
 def serve_static_files(path):
     """Serve static frontend files (HTML, CSS, JS, etc.)"""
@@ -230,12 +238,14 @@ def serve_static_files(path):
 
 
 # -------------------- Health Check --------------------
+# Endpoint for application health checks.
 @app.route("/health")
 def health_check():
     return "OK", 200
 
 
 # -------------------- Register Blueprints --------------------
+# Import and register blueprints for modularizing routes.
 from routes.dockets import dockets_bp
 from routes.verification import verification_bp
 from routes.admin_controls import admin_controls_bp
@@ -245,5 +255,6 @@ app.register_blueprint(admin_controls_bp, url_prefix="/admin")
 
 
 # -------------------- Run Server --------------------
+# Entry point to run the Flask development server.
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1')

@@ -200,86 +200,24 @@
 
     <!-- Main script for the admin dashboard functionality -->
     <script>
+        // Toggle mobile navigation menu visibility.
         document.getElementById('menu-toggle').addEventListener('click', function() {
             document.querySelector('.tabs').classList.toggle('tabs-mobile');
         });
 
-        // Retrieve the JWT token from local storage
+        // Retrieve the JWT token from local storage for API authentication.
         const token = localStorage.getItem("token");
-        // Initialize an array to hold the list of blocked students
+        // Initialize an array to hold the list of blocked students, fetched from the backend.
         let blockedStudentsList = [];
 
-        async function syncDataForOfflineUse() {
-            console.log("Starting offline data synchronization...");
-            try {
-                const headers = { "Authorization": `Bearer ${token}` };
-                
-                // Sync students
-                const studentsRes = await fetch('/dockets/sync/students', { headers });
-                if (studentsRes.ok) {
-                    const studentsData = await studentsRes.json();
-                    await clearAndAddData('students', studentsData.students);
-                    console.log('Successfully synced students to IndexedDB.');
-                }
-
-                // Sync active docket tokens
-                const tokensRes = await fetch('/dockets/sync/tokens', { headers });
-                if (tokensRes.ok) {
-                    const tokensData = await tokensRes.json();
-                    // We need to store objects in IndexedDB, so we map the array of strings
-                    const tokenObjects = tokensData.tokens.map(hash => ({ token_hash: hash }));
-                    await clearAndAddData('active_dockets', tokenObjects);
-                    console.log('Successfully synced active dockets to IndexedDB.');
-                }
-
-                // Sync blocked students
-                const blockedRes = await fetch('/admin/blocked-students', { headers });
-                if (blockedRes.ok) {
-                    const blockedData = await blockedRes.json();
-                    // We need to store objects in IndexedDB
-                    const blockedObjects = blockedData.blocked_students.map(num => ({ student_number: num }));
-                    await clearAndAddData('blocked_students', blockedObjects);
-                    console.log('Successfully synced blocked students to IndexedDB.');
-                }
-                alert('Offline data synced successfully!');
-            } catch (err) {
-                console.error("Offline sync failed:", err);
-                alert("Could not sync offline data. Verification will only work online.");
-            }
-        }
-
-        async function loadAdminControlsData() {
-            try {
-                const [settingsRes, blockedRes] = await Promise.all([
-                    fetch('/admin/settings', { headers: { "Authorization": `Bearer ${token}` } }),
-                    fetch('/admin/blocked-students', { headers: { "Authorization": `Bearer ${token}` } })
-                ]);
-
-                if (settingsRes.ok) {
-                    const settingsJson = await settingsRes.json();
-                    const activeExam = settingsJson.settings.active_exam;
-                    const radioBtn = document.querySelector(`input[name='active_exam'][value='${activeExam}']`);
-                    if (radioBtn) {
-                        radioBtn.checked = true;
-                    }
-                }
-
-                if (blockedRes.ok) {
-                    const blockedJson = await blockedRes.json();
-                    blockedStudentsList = blockedJson.blocked_students || [];
-                }
-            } catch (err) {
-                console.error("Error loading admin data:", err);
-                alert("Could not load admin settings. Please refresh.");
-            }
-        }
-
+        // Function to switch between different tabs (sections) of the dashboard.
+        // It activates the selected tab and manages the QR scanner's state.
         function openTab(event, tabName) {
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
             document.getElementById(tabName).classList.add('active');
             event.currentTarget.classList.add('active');
-            if (tabName === 'verify') startScanner(); else stopScanner();
+            if (tabName === 'verify') startScanner(); else stopScanner(); // Start/stop scanner based on tab.
         }
 
         document.getElementById("searchBtn").onclick = async () => {
