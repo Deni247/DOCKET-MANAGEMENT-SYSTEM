@@ -481,6 +481,7 @@ def search_students():
                 AND s.current_year = sb.year_of_study 
                 AND s.current_semester = sb.semester
             WHERE s.student_number = %s
+            GROUP BY s.id
             ORDER BY s.last_name, s.first_name
             LIMIT 1
         """
@@ -497,6 +498,7 @@ def search_students():
                 AND s.current_year = sb.year_of_study 
                 AND s.current_semester = sb.semester
             WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
+            GROUP BY s.id
             ORDER BY s.last_name, s.first_name
         """
         params = (search_query, search_query, search_query)
