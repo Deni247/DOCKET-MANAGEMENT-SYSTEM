@@ -219,11 +219,11 @@ def me():
 
 
 # -------------------- Serve Frontend --------------------
-# Serves the main student portal HTML file.
+# Serves the main admin portal HTML file.
 @app.route("/")
 def serve_index():
-    """Serve student portal HTML"""
-    return send_from_directory(app.static_folder, "students-portal.html")
+    """Serve admin portal HTML"""
+    return send_from_directory(app.static_folder, "admin-login.html")
 
 
 # Serves all other static frontend files (CSS, JS, images, etc.).

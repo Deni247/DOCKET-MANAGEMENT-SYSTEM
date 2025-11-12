@@ -31,13 +31,14 @@ This project is a Student Docket Management System. It's a web application desig
     *   Make sure you have a MySQL server running.
     *   Create a database (e.g., `docket_system`).
     *   Import the schema from `docket_system2 .1.sql`.
-    *   Configure the database connection by creating a `.env` file in the `Docket-system-backend` directory with the following variables:
+    *   Configure the database connection by creating a `.env` file in the `Docket-system-backend` directory with the following variables. Ensure `DB_PLATFORM` is set correctly for your environment (e.g., `XAMPP` for local MySQL).
         ```
         DB_HOST=localhost
         DB_USER=your_db_user
         DB_PASSWORD=your_db_password
         DB_NAME=docket_system
         JWT_SECRET=a_very_secret_key
+        DB_PLATFORM=XAMPP # Or leave blank for TiDB/Render configuration
         ```
 
 3.  **Run the Backend Server:**
@@ -48,7 +49,10 @@ This project is a Student Docket Management System. It's a web application desig
 
 ### 2. Frontend
 
-The frontend is served directly by the Flask backend. No separate build step is required. You can access the application by navigating to `http://127.0.0.1:5000` in your web browser.
+The frontend is served directly by the Flask backend. No separate build step is required.
+
+*   **Admin Portal:** Access the admin login page by navigating to `http://127.0.0.1:5000` in your web browser.
+*   **Student Portal:** Access the student login page by navigating to `http://127.0.0.1:5000/students-portal.html` in your web browser.
 
 ### 3. Testing with Ngrok
 
@@ -63,6 +67,12 @@ The `NGROK_SETUP_AND_TESTING.txt` file provides instructions on how to use `ngro
 *   **Static Files:** The Flask application is configured to serve the frontend's static files (HTML, CSS, JS) from the `Docket-system-frontend/frontend` directory.
 
 ## Changelog
+
+### 2025-11-12
+
+*   **Database Connection Fix:** Resolved database connection issues by ensuring correct `.env` configuration, specifically the `DB_PLATFORM` variable, to properly connect to MySQL.
+*   **Separate Login Pages:** Ensured complete separation of admin and student login pages. The admin login is at the root (`/`), and the student login is at `/students-portal.html`, with no direct links between them.
+*   **Logout Redirects:** Implemented frontend logic to redirect users to their respective login pages (`admin-login.html` for admins, `students-portal.html` for students) upon logout.
 
 ### 2025-10-29
 
