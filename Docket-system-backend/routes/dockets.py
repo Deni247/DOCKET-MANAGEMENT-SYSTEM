@@ -440,23 +440,29 @@ def generate_docket():
 @jwt_required(role="admin")
 def get_payments():
     # Retrieves a list of all students with their payment balance information.
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(dictionary=True)
 
-    cur.execute("""
-        SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, sb.total_fee, sb.amount_paid, sb.balance
-        FROM students s
-        JOIN programmes p ON s.programme_id = p.programme_id
-        LEFT JOIN student_balances sb ON s.id = sb.student_id
-        GROUP BY s.id
-        ORDER BY s.last_name, s.first_name
-    """)
-    students = cur.fetchall()
+        cur.execute("""
+            SELECT DISTINCT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, sb.total_fee, sb.amount_paid, sb.balance
+            FROM students s
+            JOIN programmes p ON s.programme_id = p.programme_id
+            LEFT JOIN student_balances sb ON s.id = sb.student_id
+            ORDER BY s.last_name, s.first_name
+        """)
+        students = cur.fetchall()
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
 
-    return jsonify({"ok": True, "students": students})
+        return jsonify({"ok": True, "students": students})
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
+        return jsonify({"ok": False, "error": f"Failed to retrieve payments: {str(e)}"}), 500
 
 
 @dockets_bp.route("/students/search", methods=["GET"])
@@ -467,49 +473,54 @@ def search_students():
     if not query:
         return jsonify({"ok": True, "students": []})
 
-    conn = get_db_connection()
-    cur = conn.cursor(dictionary=True)
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(dictionary=True)
 
-    # Heuristic: If the query consists only of digits, it's a student number search.
-    if query.isdigit():
-        sql = """
-            SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
-                    sb.total_fee, sb.amount_paid, sb.balance
-            FROM students s
-            JOIN programmes p ON s.programme_id = p.programme_id
-            LEFT JOIN student_balances sb ON s.id = sb.student_id 
-                AND s.current_year = sb.year_of_study 
-                AND s.current_semester = sb.semester
-            WHERE s.student_number = %s
-            GROUP BY s.id
-            ORDER BY s.last_name, s.first_name
-            LIMIT 1
-        """
-        params = (query,)
-    else:
-        # Perform a LIKE search for names or partial student numbers
-        search_query = f"%{query}%"
-        sql = """
-            SELECT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
-                    sb.total_fee, sb.amount_paid, sb.balance
-            FROM students s
-            JOIN programmes p ON s.programme_id = p.programme_id
-            LEFT JOIN student_balances sb ON s.id = sb.student_id 
-                AND s.current_year = sb.year_of_study 
-                AND s.current_semester = sb.semester
-            WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
-            GROUP BY s.id
-            ORDER BY s.last_name, s.first_name
-        """
-        params = (search_query, search_query, search_query)
+        # Heuristic: If the query consists only of digits, it's a student number search.
+        if query.isdigit():
+            sql = """
+                SELECT DISTINCT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
+                        sb.total_fee, sb.amount_paid, sb.balance
+                FROM students s
+                JOIN programmes p ON s.programme_id = p.programme_id
+                LEFT JOIN student_balances sb ON s.id = sb.student_id 
+                    AND s.current_year = sb.year_of_study 
+                    AND s.current_semester = sb.semester
+                WHERE s.student_number = %s
+                ORDER BY s.last_name, s.first_name
+                LIMIT 1
+            """
+            params = (query,)
+        else:
+            # Perform a LIKE search for names or partial student numbers
+            search_query = f"%{query}%"
+            sql = """
+                SELECT DISTINCT s.id, s.first_name, s.last_name, s.student_number, p.programme_name, 
+                        sb.total_fee, sb.amount_paid, sb.balance
+                FROM students s
+                JOIN programmes p ON s.programme_id = p.programme_id
+                LEFT JOIN student_balances sb ON s.id = sb.student_id 
+                    AND s.current_year = sb.year_of_study 
+                    AND s.current_semester = sb.semester
+                WHERE s.first_name LIKE %s OR s.last_name LIKE %s OR s.student_number LIKE %s
+                ORDER BY s.last_name, s.first_name
+            """
+            params = (search_query, search_query, search_query)
 
-    cur.execute(sql, params)
-    students = cur.fetchall()
+        cur.execute(sql, params)
+        students = cur.fetchall()
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
 
-    return jsonify({"ok": True, "students": students})
+        return jsonify({"ok": True, "students": students})
+    except Exception as e:
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
+        return jsonify({"ok": False, "error": f"Search failed: {str(e)}"}), 500
 
 @dockets_bp.route("/payments/update", methods=["POST"])
 @jwt_required(role="admin")
